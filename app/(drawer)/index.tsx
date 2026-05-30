@@ -191,7 +191,7 @@ export default function Landing() {
               icon="home-outline"
               label="Host"
               subtitle="Share your spot"
-              onPress={() => console.log("Host")}
+              onPress={() => router.push("/host")}
             />
           </ScrollView>
         </View>

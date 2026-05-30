@@ -6,6 +6,7 @@ import {
 import { Drawer } from "expo-router/drawer";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
+import { useRouter } from "expo-router";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import CustomDrawer from "@/components/drawer/CustomDrawer";
@@ -14,6 +15,7 @@ import CustomDrawer from "@/components/drawer/CustomDrawer";
 
 export default function DrawerLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -74,11 +76,16 @@ export default function DrawerLayout() {
 
         {/* Host Home flow */}
         <Drawer.Screen
-          name="host/index"
+          name="host"
           options={{
-            drawerLabel: "Host Home",
+            drawerLabel: "Hosting Home",
             title: "Host Home",
-            // Add icon or custom options as needed
+          }}
+          listeners={{
+            drawerItemPress: (event) => {
+              event.preventDefault();
+              router.replace("/host");
+            },
           }}
         />
       </Drawer>

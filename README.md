@@ -25,6 +25,17 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Hosting Migration
+
+The hosting flow now lives under the global drawer at `/host`.
+
+- Drawer label: `Hosting Home`
+- Landing route: `app/(drawer)/host/(tabs)/index.tsx`
+- Navigation behavior: the drawer entry replaces the current route with `/host`, so stale driver stack history is not preserved beneath the host flow.
+- State: host state is managed in `src/hostStore.js` with Zustand and kept separate from the driver location store in `src/store.js`.
+
+The current host migration hydrates from `model/mockLocations.json`, matching the app's present mock-data setup. When backend host data is reintroduced, replace the `hydrateHostData(mockHostData)` calls in the host screens with the real host fetch layer.
+
 ## Get a fresh project
 
 When you're ready, run:
