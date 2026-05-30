@@ -10,6 +10,7 @@ This migration ports the old hosting entry flow from `PP-old` into the Expo Rout
 - Host stack owner: `app/(drawer)/host/_layout.tsx`
 - Host tabs shell: `app/(drawer)/host/(tabs)/_layout.tsx`
 - Host landing screen: `app/(drawer)/host/(tabs)/index.tsx`
+- Host listing wizard: `app/(drawer)/host/start-listing.tsx`
 - Supporting screens:
   - `app/(drawer)/host/(tabs)/calendar.tsx`
   - `app/(drawer)/host/(tabs)/reservations.tsx`
@@ -38,7 +39,31 @@ Host-specific UI was moved into `components/hostHub/`:
 - `ListingCard.tsx`
 - `TransactionDataCard.tsx`
 
+Host listing wizard UI lives in `components/hostHub/startListing/`:
+
+- `FooterBackNext.tsx`
+- `ManageHostLocation.tsx`
+- `PriceSection.tsx`
+- `RenderIncrementer.tsx`
+- `RenderStartListingMap.tsx`
+- `SearchHostLocation.tsx`
+- `SelectPType.tsx`
+
 These components preserve the old HostHome visual treatment while removing Recoil and legacy overlay dependencies.
+
+## Start Listing Flow
+
+The `Start sharing` CTA now opens a five-step host listing wizard.
+
+Steps:
+
+1. Parking type
+2. Location search, current location, or draggable map confirmation
+3. Number of lots
+4. Hourly price
+5. Listing name
+
+Completing the wizard creates a new draft host location inside `src/hostStore.js`, generates default lots from the chosen lot count, and returns the user to the host hub with the new location selected.
 
 ## Current Data Source
 

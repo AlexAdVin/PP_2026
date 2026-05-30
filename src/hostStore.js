@@ -10,6 +10,68 @@ const defaultListingData = {
   locName: "",
 };
 
+const createDefaultListingDraft = () => ({
+  type: "Open space",
+  addrLoc: "",
+  lat: null,
+  lng: null,
+  nrOfLots: 3,
+  hrPrice: 25,
+  locName: "",
+});
+
+const createDefaultLot = (index, hourlyPrice) => ({
+  id: `lot-${Date.now()}-${index + 1}`,
+  lotNr: index + 1,
+  img: null,
+  rules: "Please read the host note before arrival.",
+  avlBool: true,
+  startAvl: new Date().toISOString().slice(0, 10),
+  endAvl: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+    .toISOString()
+    .slice(0, 10),
+  chargerBool: false,
+  AvlDaysNTimes: {
+    items: [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ].map((day, dayIndex) => ({
+      id: `avl-${Date.now()}-${index + 1}-${day}`,
+      day,
+      bool: true,
+      sT: new Date(new Date().setHours(dayIndex < 5 ? 8 : 0, 0, 0, 0)).toISOString(),
+      eT: new Date(new Date().setHours(dayIndex < 5 ? 18 : 23, 59, 59, 999)).toISOString(),
+    })),
+  },
+  Charger: null,
+  Transactions: {
+    items: [],
+  },
+  parkingFee: Number(hourlyPrice ?? 0),
+});
+
+const createLocationFromListing = (listingData) => ({
+  id: `host-location-${Date.now()}`,
+  type: listingData?.type ?? "Open space",
+  addrLoc: listingData?.addrLoc ?? "",
+  nrOfLots: Number(listingData?.nrOfLots ?? 1),
+  hrPrice: Number(listingData?.hrPrice ?? 0),
+  locName: listingData?.locName ?? "",
+  lat: listingData?.lat ?? null,
+  lng: listingData?.lng ?? null,
+  description: "New host listing draft",
+  Lots: {
+    items: Array.from({ length: Number(listingData?.nrOfLots ?? 1) }, (_, index) =>
+      createDefaultLot(index, listingData?.hrPrice),
+    ),
+  },
+});
+
 const mapLocationToListing = (location) => ({
   type: location?.type ?? "",
   addrLoc: location?.addrLoc ?? "",
@@ -30,7 +92,7 @@ export const useHostStore = create((set, get) => ({
     hostName: "",
     locations: [],
   },
-  listingData: defaultListingData,
+  listingData: createDefaultListingDraft(),
   checkedPostIndex: 0,
   showLocationsList: false,
 
@@ -66,9 +128,36 @@ export const useHostStore = create((set, get) => ({
       },
     })),
 
-  resetListingData: () => set({ listingData: defaultListingData }),
+  updateListingField: (key, value) =>
+    set((state) => ({
+      listingData: {
+        ...state.listingData,
+        [key]: value,
+      },
+    })),
+
+  resetListingData: () => set({ listingData: createDefaultListingDraft() }),
   setCheckedPostIndex: (checkedPostIndex) => set({ checkedPostIndex }),
   setShowLocationsList: (showLocationsList) => set({ showLocationsList }),
+
+  createHostLocationDraft: (listingData) => {
+    const nextListingData = listingData ?? get().listingData;
+    const newLocation = createLocationFromListing(nextListingData);
+    const currentState = get().hostLotState;
+    const nextLocations = [...(currentState.locations ?? []), newLocation];
+
+    set({
+      hostLotState: {
+        ...currentState,
+        locations: nextLocations,
+      },
+      checkedPostIndex: nextLocations.length - 1,
+      listingData: mapLocationToListing(newLocation),
+      showLocationsList: false,
+    });
+
+    return newLocation;
+  },
 
   selectLocation: (index) => {
     const location = get().hostLotState.locations?.[index];

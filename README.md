@@ -31,8 +31,11 @@ The hosting flow now lives under the global drawer at `/host`.
 
 - Drawer label: `Hosting Home`
 - Landing route: `app/(drawer)/host/(tabs)/index.tsx`
+- Listing wizard: `app/(drawer)/host/start-listing.tsx`
 - Navigation behavior: the drawer entry replaces the current route with `/host`, so stale driver stack history is not preserved beneath the host flow.
 - State: host state is managed in `src/hostStore.js` with Zustand and kept separate from the driver location store in `src/store.js`.
+
+The `Start sharing` action now opens a five-step host listing wizard for type, address, lot count, hourly price, and location name. Completing that flow creates a host location draft in the host Zustand store and returns the user to the hosting hub.
 
 The current host migration hydrates from `model/mockLocations.json`, matching the app's present mock-data setup. When backend host data is reintroduced, replace the `hydrateHostData(mockHostData)` calls in the host screens with the real host fetch layer.
 

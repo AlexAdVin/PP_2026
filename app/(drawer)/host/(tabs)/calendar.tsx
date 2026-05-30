@@ -27,7 +27,7 @@ export default function HostCalendarScreen() {
     }
   }, [hostLotState.locations?.length, hydrateHostData]);
 
-  const lots = currentLocation?.Lots?.items ?? [];
+  const lots = useMemo(() => currentLocation?.Lots?.items ?? [], [currentLocation]);
   const highlights = useMemo(
     () => [
       {

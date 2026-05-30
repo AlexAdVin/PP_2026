@@ -5,6 +5,7 @@ export default function HostStackLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="start-listing" />
       <Stack.Screen
         name="update-avl"
         options={{

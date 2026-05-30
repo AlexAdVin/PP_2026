@@ -154,7 +154,7 @@ export default function HostHomeScreen() {
                 </TouchableOpacity>
               </View>
             ))}
-            <HostFooterButton label="Tell someone" onPress={() => router.push("/host/update-avl")} />
+            <HostFooterButton label="Tell someone" onPress={() => router.push("/host/start-listing")} />
           </View>
         ) : (
           <View
@@ -171,7 +171,7 @@ export default function HostHomeScreen() {
               Let others park when you are not there.
             </Text>
             <BulletPoints />
-            <HostFooterButton label="Start sharing" onPress={() => router.push("/host/update-avl")} />
+            <HostFooterButton label="Start sharing" onPress={() => router.push("/host/start-listing")} />
             <TouchableOpacity
               style={{
                 ...stylesBtns.btn4,
