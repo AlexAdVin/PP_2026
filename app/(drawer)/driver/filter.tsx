@@ -1,10 +1,12 @@
-import { Link } from 'expo-router';
+import React from 'react';
 import { StyleSheet } from 'react-native';
-
-import { ThemedText } from '@/components/themed-text';
+import { Link, useRouter } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 
-export default function ModalScreen() {
+export default function FilterScreen() {
+  const router = useRouter();
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title">This is a modal</ThemedText>

@@ -1,0 +1,82 @@
+import { StyleSheet, Platform } from "react-native";
+export default StyleSheet.create({
+  headerContainer: {
+    paddingTop: Platform.OS === "ios" ? 72 : 52,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  mobilityCard: {
+    borderRadius: 34,
+    borderWidth: 1,
+
+    padding: 22,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderColor: "rgba(255,255,255,0.9)",
+    overflow: "hidden",
+    shadowColor: "#FFFFFF",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 1,
+    elevation: 4,
+  },
+  sectionRow: { flexDirection: "row", alignItems: "center" },
+  avatarWrapper: { marginRight: 18 },
+  progressRing: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    borderWidth: 2,
+    borderColor: "#22C55E",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatar: { width: 76, height: 76, borderRadius: 50 },
+  userName: {
+    fontSize: 24,
+    fontWeight: "700",
+    letterSpacing: -0.8,
+    color: "#0F172A",
+  },
+  userRole: {
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
+    color: "#64748B",
+  },
+  heroMetric: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+    color: "#0F172A",
+  },
+  metricsGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 24,
+  },
+  metricCard: {
+    flex: 1,
+    marginHorizontal: 4,
+    borderRadius: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    backgroundColor: "rgba(255,255,255,0.55)",
+  },
+  metricValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 2,
+    color: "#0F172A",
+  },
+  metricLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "500",
+    color: "#64748B",
+  },
+});

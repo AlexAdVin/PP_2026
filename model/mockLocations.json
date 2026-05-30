@@ -1,0 +1,329 @@
+{
+  "hostSub": "f6651c26-5a05-4839-8bc6-7fbcb758e0a4",
+  "hostName": "ElektraPark Host",
+  "locations": [
+    {
+      "id": "5d581baf-a10c-4789-b0d1-efc687ba15d1",
+      "type": "Secured garage",
+      "addrLoc": "Aarhus University, Nordre Ringgade, Aarhus C, Denmark",
+      "nrOfLots": 1,
+      "hrPrice": 31.5,
+      "locName": "Aarhus Central",
+      "lng": 10.2000645,
+      "lat": 56.16599239999999,
+      "description": "Secure heated garage with CCTV surveillance near Aarhus city center.",
+      "dyPrice": false,
+      "newPrice": null,
+      "img": "https://img.freepik.com/premium-photo/car-near-house-modern-area-comfortable-housing-mortgage-parking-apartment-house-suburbs_114160-1649.jpg",
+      "rating": 4.8,
+      "parkingFee": 31.5,
+      "Lots": {
+        "items": [
+          {
+            "id": "cba0a5ef-199e-4cae-95ce-6a6af628c926",
+            "img": "https://img.freepik.com/premium-photo/secure-parking-garage_114160-1700.jpg",
+            "rules": "Gate opens with 4-digit code from booking confirmation",
+            "lotNr": 1,
+            "avlBool": true,
+            "startAvl": "2024-01-01",
+            "endAvl": "2025-12-31",
+            "chargerBool": false,
+            "AvlDaysNTimes": {
+              "items": [
+                {
+                  "id": "a0fd3836-e99c-4d68-86e9-6ba6db61a9c2",
+                  "sT": "2024-01-01T12:00:00Z",
+                  "eT": "2024-01-01T23:59:59Z",
+                  "day": "Monday",
+                  "bool": true,
+                  "lotID": "cba0a5ef-199e-4cae-95ce-6a6af628c926"
+                },
+                {
+                  "id": "cfecca60-dec2-4aa1-929c-5008737f5378",
+                  "sT": "2024-01-01T12:00:00Z",
+                  "eT": "2024-01-01T23:59:59Z",
+                  "day": "Sunday",
+                  "bool": true,
+                  "lotID": "cba0a5ef-199e-4cae-95ce-6a6af628c926"
+                }
+              ]
+            },
+            "Charger": null,
+            "locationID": "5d581baf-a10c-4789-b0d1-efc687ba15d1",
+            "Transactions": {
+              "items": [
+                {
+                  "id": "ccad50cb-c833-4c12-b394-7561c3f12792",
+                  "lotID": "cba0a5ef-199e-4cae-95ce-6a6af628c926",
+                  "driverID": "acb79666-19dc-43cd-9d6a-33754c8c379e",
+                  "driverName": "John Doe",
+                  "startBooking": "2024-05-24T08:24:20.295Z",
+                  "endBooking": "2024-05-24T12:24:20.295Z",
+                  "agreedPriceHR": 31.5,
+                  "surge": null
+                },
+                {
+                  "id": "6fa99c95-0c7d-45a4-b4ca-54fc3f5a5ac8",
+                  "lotID": "cba0a5ef-199e-4cae-95ce-6a6af628c926",
+                  "driverID": "43eb4b5c-0e42-4694-bcac-0c3583e58d5b",
+                  "driverName": "Jane Smith",
+                  "startBooking": "2024-06-02T14:19:58.624Z",
+                  "endBooking": "2024-06-02T14:49:58.624Z",
+                  "agreedPriceHR": 25.7,
+                  "surge": null
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "b57a5d3e-598b-44c9-8ce8-5d75df98ffe1",
+      "type": "Car port",
+      "addrLoc": "Malmö Airport (MMX), Malmö-Sturup, Sweden",
+      "nrOfLots": 1,
+      "hrPrice": 27,
+      "locName": "Malmö Airport",
+      "lng": 13.3703395,
+      "lat": 55.5347595,
+      "description": "The parking is enclosed and there is CCTV camera to ensure extra security.",
+      "dyPrice": false,
+      "newPrice": null,
+      "img": "https://img.freepik.com/premium-photo/airport-parking-lot_114160-2000.jpg",
+      "rating": 4.5,
+      "parkingFee": 27,
+      "Lots": {
+        "items": [
+          {
+            "id": "bee0eb47-18d8-440c-9b26-9f00ac29ee37",
+            "img": "https://img.freepik.com/premium-photo/covered-parking-airport_114160-1800.jpg",
+            "rules": "Please read the charger note to turn it on",
+            "lotNr": 1,
+            "avlBool": true,
+            "startAvl": "2024-04-30",
+            "endAvl": "2025-04-30",
+            "chargerBool": true,
+            "AvlDaysNTimes": {
+              "items": [
+                {
+                  "id": "9bccf696-979a-4847-b7ce-176b62804f9d",
+                  "sT": "2024-04-30T13:22:43.481Z",
+                  "eT": "2024-04-30T23:59:59Z",
+                  "day": "Saturday",
+                  "bool": true,
+                  "lotID": "bee0eb47-18d8-440c-9b26-9f00ac29ee37"
+                },
+                {
+                  "id": "74579250-01b2-46f7-a547-4b59d21fd496",
+                  "sT": "2024-05-01T00:00:00Z",
+                  "eT": "2024-05-01T23:59:59Z",
+                  "day": "Sunday",
+                  "bool": true,
+                  "lotID": "bee0eb47-18d8-440c-9b26-9f00ac29ee37"
+                }
+              ]
+            },
+            "Charger": {
+              "id": "charger-mmo-001",
+              "chargerNr": 1,
+              "plugType": "Type 2",
+              "power": 11,
+              "usageFee": 2.5,
+              "pricekWh": 0.45
+            },
+            "locationID": "b57a5d3e-598b-44c9-8ce8-5d75df98ffe1",
+            "Transactions": {
+              "items": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "13dfef0b-e243-4c0e-9c62-6af27581c3ab",
+      "type": "Secured garage",
+      "addrLoc": "Horsens Fjord, Denmark",
+      "nrOfLots": 1,
+      "hrPrice": 39.7,
+      "locName": "Horsens Premium",
+      "lng": 10.0259446,
+      "lat": 55.8565929,
+      "description": "The parking is enclosed and there is CCTV camera to ensure extra security.",
+      "dyPrice": true,
+      "newPrice": 42,
+      "img": "https://img.freepik.com/premium-photo/premium-garage-parking_114160-2200.jpg",
+      "rating": 4.7,
+      "parkingFee": 39.7,
+      "Lots": {
+        "items": [
+          {
+            "id": "3236e0d8-09da-440a-90fa-1f130b44dc65",
+            "img": "https://img.freepik.com/premium-photo/indoor-parking_114160-1900.jpg",
+            "rules": "Please read the charger note to turn it on",
+            "lotNr": 1,
+            "avlBool": true,
+            "startAvl": "2024-04-30",
+            "endAvl": "2025-04-30",
+            "chargerBool": true,
+            "AvlDaysNTimes": {
+              "items": [
+                {
+                  "id": "ca99ce61-36f3-4565-9496-fc72f664308f",
+                  "sT": "2024-05-01T00:00:00Z",
+                  "eT": "2024-05-01T23:59:59Z",
+                  "day": "Sunday",
+                  "bool": true,
+                  "lotID": "3236e0d8-09da-440a-90fa-1f130b44dc65"
+                },
+                {
+                  "id": "b3105061-982b-4683-b5dd-af6be4aa1b60",
+                  "sT": "2024-04-30T00:00:00Z",
+                  "eT": "2024-04-30T23:59:59Z",
+                  "day": "Saturday",
+                  "bool": true,
+                  "lotID": "3236e0d8-09da-440a-90fa-1f130b44dc65"
+                }
+              ]
+            },
+            "Charger": {
+              "id": "charger-horsens-001",
+              "chargerNr": 1,
+              "plugType": "Type 2",
+              "power": 22,
+              "usageFee": 3.0,
+              "pricekWh": 0.50
+            },
+            "locationID": "13dfef0b-e243-4c0e-9c62-6af27581c3ab",
+            "Transactions": {
+              "items": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "4104f0f8-c2c3-4b95-8a4e-3e8005e06d28",
+      "type": "Open space",
+      "addrLoc": "Odense Station, Dannebrogsgade, Odense, Denmark",
+      "nrOfLots": 3,
+      "hrPrice": 45,
+      "locName": "Odense Station",
+      "lng": 10.3856627,
+      "lat": 55.4024043,
+      "description": "Open-air parking close to Odense train station with easy access.",
+      "dyPrice": false,
+      "newPrice": null,
+      "img": "https://img.freepik.com/premium-photo/outdoor-parking_114160-1650.jpg",
+      "rating": 4.2,
+      "parkingFee": 45,
+      "Lots": {
+        "items": [
+          {
+            "id": "5959e294-89bc-48b8-a9a6-8930fa75f323",
+            "img": "https://img.freepik.com/premium-photo/outdoor-parking_114160-1650.jpg",
+            "rules": "No overnight parking",
+            "lotNr": 3,
+            "avlBool": true,
+            "startAvl": "2023-12-17",
+            "endAvl": "2025-12-17",
+            "chargerBool": false,
+            "AvlDaysNTimes": {
+              "items": [
+                {
+                  "id": "e6c17e4b-d6bd-43e9-bf67-4ee405ff9e47",
+                  "sT": "2025-12-17T09:56:35.977Z",
+                  "eT": "2026-12-17T17:56:35.977Z",
+                  "day": "Monday",
+                  "bool": true,
+                  "lotID": "5959e294-89bc-48b8-a9a6-8930fa75f323"
+                }
+              ]
+            },
+            "Charger": null,
+            "locationID": "4104f0f8-c2c3-4b95-8a4e-3e8005e06d28",
+            "Transactions": {
+              "items": [
+                {
+                  "id": "cc5dc0ad-9480-4197-8d52-f440d68c214b",
+                  "lotID": "5959e294-89bc-48b8-a9a6-8930fa75f323",
+                  "driverID": "acb79666-19dc-43cd-9d6a-33754c8c379e",
+                  "driverName": "Alex Johnson",
+                  "startBooking": "2026-04-26T08:22:25.346Z",
+                  "endBooking": "2026-05-26T12:22:25.346Z",
+                  "agreedPriceHR": 45,
+                  "surge": null
+                }
+              ]
+            }
+          },
+          {
+            "id": "5f552a70-69f5-477a-ac72-7015965a7ed2",
+            "img": "https://img.freepik.com/premium-photo/outdoor-parking_114160-1650.jpg",
+            "rules": "No overnight parking",
+            "lotNr": 2,
+            "avlBool": true,
+            "startAvl": "2023-12-17",
+            "endAvl": "2025-12-17",
+            "chargerBool": false,
+            "AvlDaysNTimes": {
+              "items": [
+                {
+                  "id": "720b3e2e-9926-4191-8b3a-a67532930f2f",
+                  "sT": "2023-12-17T09:56:35.977Z",
+                  "eT": "2023-12-17T17:56:35.977Z",
+                  "day": "Monday",
+                  "bool": true,
+                  "lotID": "5f552a70-69f5-477a-ac72-7015965a7ed2"
+                }
+              ]
+            },
+            "Charger": null,
+            "locationID": "4104f0f8-c2c3-4b95-8a4e-3e8005e06d28",
+            "Transactions": {
+              "items": [
+                {
+                  "id": "5b991e5d-8193-49ed-8cc2-221c9639137c",
+                  "lotID": "5f552a70-69f5-477a-ac72-7015965a7ed2",
+                  "driverID": "acb79666-19dc-43cd-9d6a-33754c8c379e",
+                  "driverName": "Alex Johnson",
+                  "startBooking": "2024-05-24T08:19:42.247Z",
+                  "endBooking": "2024-05-24T12:19:42.247Z",
+                  "agreedPriceHR": 45,
+                  "surge": null
+                }
+              ]
+            }
+          },
+          {
+            "id": "cae15586-d43b-4d0b-b791-6669499178c5",
+            "img": "https://img.freepik.com/premium-photo/outdoor-parking_114160-1650.jpg",
+            "rules": "No overnight parking",
+            "lotNr": 1,
+            "avlBool": true,
+            "startAvl": "2023-12-17",
+            "endAvl": "2025-12-17",
+            "chargerBool": false,
+            "AvlDaysNTimes": {
+              "items": [
+                {
+                  "id": "3f0c64f2-fea0-4f36-8543-571abc8b85c3",
+                  "sT": "2023-12-17T09:56:35.976Z",
+                  "eT": "2023-12-17T17:56:35.976Z",
+                  "day": "Tuesday",
+                  "bool": true,
+                  "lotID": "cae15586-d43b-4d0b-b791-6669499178c5"
+                }
+              ]
+            },
+            "Charger": null,
+            "locationID": "4104f0f8-c2c3-4b95-8a4e-3e8005e06d28",
+            "Transactions": {
+              "items": []
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
