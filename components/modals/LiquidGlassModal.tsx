@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Dimensions, Pressable, StyleSheet, View } from "react-native";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -32,7 +32,27 @@ export default function LiquidGlassModal({
   onBackdropPress,
 }: Props) {
   const resolvedHeight = height ?? SCREEN_HEIGHT * (heightPercent ?? 0.55);
-  const translateY = useSharedValue(0);
+  const translateY = useSharedValue(resolvedHeight + 60);
+
+  useEffect(() => {
+    translateY.value = withSpring(0, {
+      damping: 22,
+      stiffness: 220,
+    });
+  }, [translateY]);
+
+  const animateClose = () => {
+    "worklet";
+    translateY.value = withTiming(resolvedHeight + 80, { duration: 220 }, (finished) => {
+      if (finished) {
+        runOnJS(onClose)();
+      }
+    });
+  };
+
+  const closeSheet = () => {
+    animateClose();
+  };
 
   const gesture = Gesture.Pan()
     .onUpdate((e) => {
@@ -42,9 +62,7 @@ export default function LiquidGlassModal({
     })
     .onEnd(() => {
       if (translateY.value > 120) {
-        translateY.value = withTiming(resolvedHeight + 100);
-
-        runOnJS(onClose)();
+        animateClose();
       } else {
         translateY.value = withSpring(0, {
           damping: 20,
@@ -67,7 +85,7 @@ export default function LiquidGlassModal({
 
   return (
     <>
-      <Pressable style={StyleSheet.absoluteFill} onPress={onBackdropPress ?? onClose}>
+      <Pressable style={StyleSheet.absoluteFill} onPress={onBackdropPress ?? closeSheet}>
         <Animated.View style={[styles.backdrop, backdropStyle]} />
       </Pressable>
 

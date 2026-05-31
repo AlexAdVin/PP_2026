@@ -1,101 +1,179 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Dimensions,
+  ImageBackground,
+  StatusBar,
+} from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import GlassFeatureCard from "@/components/layout/premium/GlassFeatureCard";
-import GlassIconButton from "@/components/layout/premium/GlassIconButton";
-import PremiumHero from "@/components/layout/premium/PremiumHero";
-import PremiumMetricStrip from "@/components/layout/premium/PremiumMetricStrip";
-import PremiumScreen from "@/components/layout/premium/PremiumScreen";
-import QuickActionCard from "@/components/layout/premium/QuickActionCard";
-import SectionHeader from "@/components/layout/premium/SectionHeader";
+import AmbientBackground from "@/components/layout/AmbientBackground";
+
+const { height } = Dimensions.get("window");
 
 export default function Landing() {
   const navigation = useNavigation<any>();
   const imageBackground = require("@/assets/img/6232c93f3ccdf.jpg");
 
   return (
-    <PremiumScreen imageBackground={imageBackground}>
-      <PremiumHero
-        imageSource={imageBackground}
-        eyebrow="Copenhagen · Private Hosts"
-        title={"Beautiful parking.\nSeamlessly shared."}
-        subtitle="Discover curated parking spaces from trusted local hosts across the city."
-        topBar={
-          <>
-            <GlassIconButton onPress={() => navigation.openDrawer()}>
-              <Ionicons name="menu" size={22} color="#fff" />
-            </GlassIconButton>
-            <GlassIconButton onPress={() => router.push("/profile")}>
-              <Ionicons name="person-outline" size={22} color="#fff" />
-            </GlassIconButton>
-          </>
-        }
-      />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
-      <View style={styles.metricWrap}>
-        <PremiumMetricStrip
-          metrics={[
-            { value: "240+", label: "Hosts" },
-            { value: "4.9", label: "Rating" },
-            { value: "24/7", label: "Access" },
-          ]}
-        />
-      </View>
+      <LinearGradient
+        colors={["#EEF2F5", "#F8FAFC", "#FFFFFF"]}
+        style={StyleSheet.absoluteFill}
+      />
+      <AmbientBackground imageBackground={imageBackground} />
+
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.heroWrapper}>
+          <ImageBackground
+            source={imageBackground}
+            style={styles.heroImage}
+            imageStyle={styles.heroImageStyle}
+          >
+            <LinearGradient
+              colors={[
+                "rgba(15,23,42,0.10)",
+                "rgba(15,23,42,0.25)",
+                "rgba(15,23,42,0.78)",
+              ]}
+              style={StyleSheet.absoluteFill}
+            />
+
+            <View style={styles.topBar}>
+              <TouchableOpacity
+                style={styles.glassBtn}
+                onPress={() => navigation.openDrawer()}
+              >
+                <Ionicons name="menu" size={22} color="#fff" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.glassBtn}
+                onPress={() => router.push("/profile")}
+              >
+                <Ionicons name="person-outline" size={22} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.heroContent}>
+              <Text style={styles.heroEyebrow}>Copenhagen · Private Hosts</Text>
+
+              <Text style={styles.heroTitle}>
+                Beautiful parking.{"\n"}
+                Seamlessly shared.
+              </Text>
+
+              <Text style={styles.heroSubtitle}>
+                Discover curated parking spaces from trusted local hosts across
+                the city.
+              </Text>
+            </View>
+          </ImageBackground>
+        </View>
 
         <Animated.View entering={FadeInDown.duration(600)}></Animated.View>
-        <GlassFeatureCard
-          icon="search"
-          title="Explore parking"
-          subtitle="Nearby · Flexible · Instant"
+        <TouchableOpacity
+          activeOpacity={0.9}
           onPress={() => router.push("/driver/search")}
-        />
+        >
+          <BlurView
+            intensity={60}
+            tint="light"
+            style={{ ...styles.statsCard, alignItems: "center" }}
+          >
+            <View style={styles.ctaIcon}>
+              <Ionicons name="search" size={18} color="#0F172A" />
+            </View>
+
+            <View>
+              <Text style={styles.ctaTitle}>Explore parking</Text>
+              <Text style={styles.ctaSub}>Nearby · Flexible · Instant</Text>
+            </View>
+
+            <Ionicons
+              name="arrow-forward"
+              size={18}
+              color="#0F172A"
+              style={{ marginLeft: "auto" }}
+            />
+          </BlurView>
+        </TouchableOpacity>
 
         <View style={styles.section}>
-          <SectionHeader title="Your space" actionLabel="See all" />
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>Your space</Text>
 
-          <View style={styles.quickScroll}>
-            <QuickActionCard
+            <TouchableOpacity activeOpacity={0.7}>
+              <Text style={styles.sectionAction}>See all</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickScroll}
+          >
+            <QuickAction
               icon="compass-outline"
               label="Explore"
               subtitle="Find premium parking"
               onPress={() => router.push("/driver")}
             />
 
-            <QuickActionCard
+            <QuickAction
               icon="car-outline"
               label="Active"
               subtitle="Current sessions"
               onPress={() => console.log("Parking")}
-              accent="rgba(219, 234, 254, 0.72)"
             />
 
-            <QuickActionCard
+            <QuickAction
               icon="leaf-outline"
               label="Impact"
               subtitle="CO₂ savings"
               onPress={() => console.log("Impact")}
-              accent="rgba(220, 252, 231, 0.72)"
             />
 
-            <QuickActionCard
+            <QuickAction
               icon="home-outline"
               label="Host"
               subtitle="Share your spot"
               onPress={() => router.push("/host")}
-              accent="rgba(254, 226, 226, 0.72)"
             />
-          </View>
+          </ScrollView>
         </View>
 
-        <GlassFeatureCard
-          title="Continue parking"
-          subtitle="Vesterbro Courtyard · Reserved 2 minutes ago"
+        <TouchableOpacity
+          activeOpacity={0.9}
           onPress={() => router.push("/driver")}
-          trailingLabel="Resume"
-        />
+        >
+          <BlurView intensity={40} tint="light" style={styles.continueCard}>
+            <View>
+              <Text style={styles.continueEyebrow}>Continue parking</Text>
+
+              <Text style={styles.continueTitle}>Vesterbro Courtyard</Text>
+
+              <Text style={styles.continueSubtitle}>
+                Reserved 2 minutes ago
+              </Text>
+            </View>
+
+            <View style={styles.arrowCircle}>
+              <Ionicons name="arrow-forward" size={18} color="#0F172A" />
+            </View>
+          </BlurView>
+        </TouchableOpacity>
 
         <LinearGradient
           colors={["#DDF5E8", "#F4FBF7", "#FFFFFF"]}
@@ -176,21 +254,234 @@ export default function Landing() {
             <Text style={styles.hostButtonText}>Become a host</Text>
           </TouchableOpacity>
         </LinearGradient>
-    </PremiumScreen>
+      </ScrollView>
+    </View>
+  );
+}
+
+function QuickAction({ icon, label, subtitle, onPress }: any) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.9}
+      style={styles.quickOuter}
+    >
+      <BlurView intensity={40} tint="light" style={styles.quickCard}>
+        <LinearGradient
+          colors={["rgba(255,255,255,0.65)", "rgba(255,255,255,0.25)"]}
+          style={styles.quickGlow}
+        />
+
+        <View style={styles.iconWrap}>
+          <Ionicons name={icon} size={20} color="#0F172A" />
+        </View>
+
+        <Text style={styles.quickLabel}>{label}</Text>
+        <Text style={styles.quickSub}>{subtitle}</Text>
+      </BlurView>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+
+  scroll: {
+    paddingBottom: 140,
+  },
+
+  heroWrapper: {
+    height: height * 0.45,
+  },
+
+  heroImage: {
+    flex: 1,
+  },
+
+  heroImageStyle: {
+    borderRadius: 10,
+  },
+
+  topBar: {
+    marginTop: 60,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  glassBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+
+  heroContent: {
+    padding: 24,
+    marginTop: "auto",
+  },
+
+  heroEyebrow: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 13,
+    marginBottom: 10,
+    letterSpacing: 0.4,
+  },
+
+  heroTitle: {
+    color: "#fff",
+    fontSize: 38,
+    lineHeight: 42,
+    fontWeight: "700",
+    letterSpacing: -1.4,
+  },
+
+  heroSubtitle: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 15,
+    lineHeight: 24,
+    marginTop: 14,
+    width: "92%",
+    fontWeight: "400",
+  },
+
   metricWrap: {
     marginHorizontal: 24,
     marginTop: -38,
+  },
+  statsCard: {
+    marginHorizontal: 20,
+    marginTop: -38,
+    borderRadius: 28,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.45)",
+  },
+  ctaIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+  ctaTitle: {
+    color: "#0F172A",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  ctaSub: {
+    color: "#475569",
+    fontSize: 13,
+    marginTop: 2,
   },
   section: {
     marginTop: 34,
     paddingHorizontal: 20,
   },
-  quickScroll: {
+  sectionRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#0F172A",
+    letterSpacing: -0.8,
+  },
+  sectionAction: {
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  quickScroll: {
+    paddingRight: 20,
+  },
+  quickOuter: {
+    width: 180,
+    marginRight: 14,
+  },
+  quickCard: {
+    borderRadius: 28,
+    padding: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
+    backgroundColor: "rgba(255,255,255,0.4)",
+  },
+  quickGlow: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  iconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  quickLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
+    letterSpacing: -0.3,
+  },
+  quickSub: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#64748B",
+    marginTop: 6,
+  },
+  continueCard: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 30,
+    padding: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
+  },
+  continueEyebrow: {
+    fontSize: 12,
+    color: "#64748B",
+    marginBottom: 6,
+  },
+  continueTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0F172A",
+    letterSpacing: -0.5,
+  },
+  continueSubtitle: {
+    marginTop: 6,
+    color: "#64748B",
+    fontSize: 13,
+  },
+  arrowCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   impactCard: {

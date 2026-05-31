@@ -1,20 +1,38 @@
 import React, { useMemo } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import { Entypo, FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import BulletPoints from "@/components/hostHub/BulletPoints";
+import HostFooterButton from "@/components/hostHub/HostFooterButton";
 import HostHighlightsGrid from "@/components/hostHub/HostHighlightsGrid";
 import HostLocationModal from "@/components/hostHub/HostLocationModal";
+import HostTitle from "@/components/hostHub/HostTitle";
 import ListingCard from "@/components/hostHub/ListingCard";
 import CountUpText from "@/components/layout/premium/CountUpText";
-import GlassFeatureCard from "@/components/layout/premium/GlassFeatureCard";
 import PremiumHero from "@/components/layout/premium/PremiumHero";
-import PremiumMetricStrip from "@/components/layout/premium/PremiumMetricStrip";
 import PremiumScreen from "@/components/layout/premium/PremiumScreen";
 import QuickActionCard from "@/components/layout/premium/QuickActionCard";
 import SectionHeader from "@/components/layout/premium/SectionHeader";
 import { selectCurrentHostLocation, selectHasHostAccess, useHostStore } from "@/src/hostStore";
 
 const imageBackground = require("@/assets/img/6232c93f3ccdf.jpg");
+
+const hostContent = [
+  {
+    id: "1",
+    q: "We are here to help",
+    ph: "Chat with us",
+    ic: "rocketchat",
+  },
+  {
+    id: "2",
+    q: "Resources and tips",
+    ph: "How to get paid",
+    ic: "hand-holding-usd",
+  },
+];
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("en-DK", {
@@ -50,21 +68,12 @@ export default function HostHomeScreen() {
   const totals = useMemo(() => getLocationTotals(currentLocation), [currentLocation]);
   const selectedIndex = useHostStore((state) => state.checkedPostIndex);
   const isCurrentLocationActive = currentLocation?.isActive ?? true;
-  const hostingDays = useMemo(() => {
-    const lotDays = currentLocation?.Lots?.items?.flatMap((lot: any) => lot?.AvlDaysNTimes?.items ?? []) ?? [];
-    return Array.from(new Set(lotDays.filter((item: any) => item?.bool).map((item: any) => item?.day))).slice(0, 4);
-  }, [currentLocation]);
-  const upcomingReservations = useMemo(() => {
-    const now = new Date();
-    return (currentLocation?.Lots?.items ?? [])
-      .flatMap((lot: any) => lot?.Transactions?.items ?? [])
-      .filter((transaction: any) => new Date(transaction.startBooking) > now).length;
-  }, [currentLocation]);
+  const hostName = hostProfile.hostName || "welcome back";
 
   const highlights = useMemo(
     () => [
       {
-        title: "Guest messages",
+        title: "Chats to answer",
         icon: "chatbox-ellipses-outline" as const,
         count: 3,
       },
@@ -105,167 +114,151 @@ export default function HostHomeScreen() {
         onPress: () => router.push("/host/update-avl"),
         accent: "rgba(219,234,254,0.72)",
       },
-      {
-        icon: "chatbubble-ellipses-outline",
-        label: "Guest chats",
-        subtitle: "Reply quickly to the latest parking requests",
-        onPress: () => Alert.alert("Guest chats", "Chat inbox is the next host surface to wire into the hub."),
-        accent: "rgba(243,232,255,0.72)",
-      },
-      {
-        icon: "receipt-outline",
-        label: "Reservations",
-        subtitle: `${upcomingReservations} upcoming stays waiting for review`,
-        onPress: () => router.push("/host/reservations"),
-        accent: "rgba(254,249,195,0.72)",
-      },
     ],
-    [isCurrentLocationActive, router, selectedIndex, toggleLocationActive, upcomingReservations],
+    [isCurrentLocationActive, router, selectedIndex, toggleLocationActive],
   );
 
   if (!hasHostAccess) {
     return (
+      <View style={stylesScreen.screen}>
+        <PremiumScreen imageBackground={imageBackground}>
+          <HostTitle title={"Make your\nparking\navailable\n & earn extra\nevery day"} />
+
+          <View style={stylesScreen.emptyStateWrap}>
+            <Text style={stylesScreen.emptyStateTitle}>Let others park when you are not there.</Text>
+            <View style={stylesScreen.emptyBulletWrap}>
+              <BulletPoints />
+            </View>
+            <HostFooterButton label="Start sharing" onPress={() => router.push("/host/start-listing")} />
+            <TouchableOpacity
+              style={stylesScreen.secondaryButton}
+              activeOpacity={0.85}
+              onPress={() => router.push("/host/start-listing")}
+            >
+              <Text style={stylesScreen.secondaryButtonText}>Tell someone</Text>
+            </TouchableOpacity>
+          </View>
+        </PremiumScreen>
+      </View>
+    );
+  }
+
+  return (
+    <View style={stylesScreen.screen}>
       <PremiumScreen imageBackground={imageBackground}>
         <PremiumHero
           imageSource={imageBackground}
-          eyebrow={hostProfile.hostSub ? "Hosting hub" : "Private hosts · Institutions · Homes"}
-          title={"Share your empty\nparking beautifully."}
-          subtitle="Set when your space is available, accept guests on your terms, and turn quiet hours into premium income."
-          heightPercent={0.5}
+          eyebrow="Hosting hub"
+          title={`Welcome back,\n${hostName}.`}
+          subtitle=""
+          heightPercent={0.38}
         >
-          <View style={stylesScreen.heroMetricWrap}>
-            <PremiumMetricStrip
-              dark
-              metrics={[
-                { value: "5 min", label: "To list" },
-                { value: "Full", label: "Availability control" },
-                { value: "Weekly", label: "Payout rhythm" },
-              ]}
+          <View style={stylesScreen.heroRevenueWrap}>
+            <Text style={stylesScreen.heroRevenueEyebrow}>Revenue</Text>
+            <CountUpText
+              value={totals.totalAgreedPrice}
+              formatter={formatCurrency}
+              style={stylesScreen.heroRevenueValue}
             />
           </View>
         </PremiumHero>
 
-        <GlassFeatureCard
-          icon="sparkles-outline"
-          title="Start sharing your location"
-          subtitle="Create a polished listing, define when it is open, and return here to manage revenue, reservations, and live status."
-          onPress={() => router.push("/host/start-listing")}
-          trailingLabel="Start"
-        />
+        <View style={stylesScreen.locationCardWrap}>
+          <ListingCard
+            length={hostLotState.locations.length}
+            item={currentLocation}
+            onOpenLocations={() => setShowLocationsList(true)}
+          />
+        </View>
+
+        <View style={stylesScreen.gridWrap}>
+          <HostHighlightsGrid highlights={highlights} />
+        </View>
 
         <View style={stylesScreen.section}>
-          <SectionHeader title="Why hosts love it" />
-          <View style={stylesScreen.bulletGrid}>
-            {[
-              "Pause a location in one tap when you come home.",
-              "Offer evening, weekend, or holiday-only availability.",
-              "Manage households, yards, garages, and after-hours institutional lots.",
-            ].map((bullet) => (
-              <View key={bullet} style={stylesScreen.bulletCard}>
-                <BulletPoints />
-                <Text style={stylesScreen.bulletLabel}>{bullet}</Text>
-              </View>
+          <SectionHeader title="Quick actions" actionLabel="New listing" onPressAction={() => router.push("/host/start-listing")} />
+          <View style={stylesScreen.quickRow}>
+            {quickActions.map((action) => (
+              <QuickActionCard
+                key={action.label}
+                icon={action.icon}
+                label={action.label}
+                subtitle={action.subtitle}
+                onPress={action.onPress}
+                accent={action.accent}
+              />
             ))}
           </View>
         </View>
 
         <View style={stylesScreen.section}>
-          <SectionHeader title="Hosting promise" />
-          <View style={stylesScreen.quickRow}>
-            <QuickActionCard
-              icon="calendar-outline"
-              label="Choose the hours"
-              subtitle="Only open your parking when you want guests."
-              accent="rgba(219,234,254,0.72)"
-            />
-            <QuickActionCard
-              icon="cash-outline"
-              label="See the value"
-              subtitle="Track performance and revenue from the same hub."
-              accent="rgba(220,252,231,0.72)"
-            />
-          </View>
-        </View>
-      </PremiumScreen>
-    );
-  }
-
-  return (
-    <PremiumScreen imageBackground={imageBackground}>
-      <PremiumHero
-        imageSource={imageBackground}
-        eyebrow={`${currentLocation?.locName ?? "Hosting hub"} · ${currentLocation?.type ?? "Private host"}`}
-        title={"Premium hosting,\none location at a time."}
-        subtitle={`Control availability, understand revenue, and respond to guests without leaving the hosting hub. ${hostingDays.length ? `Most available on ${hostingDays.join(", ")}.` : "Set your first availability window today."}`}
-        heightPercent={0.52}
-      >
-        <View style={stylesScreen.heroRevenueCard}>
-          <Text style={stylesScreen.heroRevenueEyebrow}>Revenue from this location</Text>
-          <CountUpText
-            value={totals.totalAgreedPrice}
-            formatter={formatCurrency}
-            style={stylesScreen.heroRevenueValue}
-          />
-          <Text style={stylesScreen.heroRevenueSubtext}>
-            {isCurrentLocationActive ? "Live and bookable now" : "Currently paused by host"}
-          </Text>
-        </View>
-      </PremiumHero>
-
-      <View style={stylesScreen.metricWrap}>
-        <PremiumMetricStrip
-          metrics={[
-            { value: `${totals.activeLots}`, label: "Active lots" },
-            { value: `${totals.totalTransactionCount}`, label: "Reservations" },
-            { value: isCurrentLocationActive ? "Live" : "Paused", label: "Status" },
-          ]}
-        />
-      </View>
-
-      <View style={stylesScreen.locationCardWrap}>
-        <ListingCard
-          length={hostLotState.locations.length}
-          item={currentLocation}
-          onOpenLocations={() => setShowLocationsList(true)}
-        />
-      </View>
-
-      <View style={stylesScreen.section}>
-        <SectionHeader title="Quick actions" actionLabel="New listing" onPressAction={() => router.push("/host/start-listing")} />
-        <View style={stylesScreen.quickRow}>
-          {quickActions.map((action) => (
-            <QuickActionCard
-              key={action.label}
-              icon={action.icon}
-              label={action.label}
-              subtitle={action.subtitle}
-              onPress={action.onPress}
-              accent={action.accent}
-            />
+          {hostContent.map((entry) => (
+            <View key={entry.id} style={stylesScreen.hostContentBlock}>
+              <Text style={stylesScreen.hostContentLabel}>{entry.q}</Text>
+              <TouchableOpacity activeOpacity={0.9} style={stylesScreen.hostContentCard}>
+                <BlurView intensity={55} tint="light" style={stylesScreen.hostContentBlur}>
+                  <View style={stylesScreen.hostContentIconWrap}>
+                    <FontAwesome5 name={entry.ic} size={18} style={stylesScreen.hostContentIcon} />
+                  </View>
+                  <Text style={stylesScreen.hostContentText}>{entry.ph}</Text>
+                  <Entypo name="chevron-thin-right" size={16} style={stylesScreen.hostContentChevron} />
+                </BlurView>
+              </TouchableOpacity>
+            </View>
           ))}
         </View>
-      </View>
 
-      <View style={stylesScreen.section}>
-        <SectionHeader title="Hosting snapshot" actionLabel="See reservations" onPressAction={() => router.push("/host/reservations")} />
-        <HostHighlightsGrid highlights={highlights} />
-        <View style={stylesScreen.featureStack}>
-          <GlassFeatureCard
-            icon="calendar-clear-outline"
-            title="Availability rhythm"
-            subtitle={hostingDays.length ? `${hostingDays.join(", ")} are currently open for booking.` : "No repeating availability windows configured yet."}
-            onPress={() => router.push("/host/update-avl")}
-            trailingLabel="Edit"
-          />
-          <GlassFeatureCard
-            icon="sparkles-outline"
-            title="Hosting notes"
-            subtitle={isCurrentLocationActive ? "Guests can request this location right now. Keep times accurate to avoid manual changes later." : "This place is hidden from guests until you resume it from the hosting hub."}
-            onPress={() => Alert.alert("Hosting notes", "Pricing tips and message templates can be added as the next host iteration.")}
-            trailingLabel="Learn"
-          />
-        </View>
-      </View>
+        <LinearGradient
+          colors={["#DDF5E8", "#F4FBF7", "#FFFFFF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={stylesScreen.impactCard}
+        >
+          <View style={stylesScreen.impactGlow} />
+
+          <View style={stylesScreen.impactTopRow}>
+            <View>
+              <Text style={stylesScreen.impactEyebrow}>Sustainability impact</Text>
+              <Text style={stylesScreen.impactTitle}>Your forest is growing 🌲</Text>
+            </View>
+
+            <BlurView intensity={40} tint="light" style={stylesScreen.impactBadge}>
+              <Ionicons name="leaf" size={14} color="#22C55E" />
+              <Text style={stylesScreen.impactBadgeText}>+12%</Text>
+            </BlurView>
+          </View>
+
+          <Text style={stylesScreen.impactText}>One more parking away from planting your next tree.</Text>
+
+          <View style={stylesScreen.progressWrapper}>
+            <View style={stylesScreen.progressBar}>
+              <LinearGradient
+                colors={["#22C55E", "#4ADE80"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={stylesScreen.progressFill}
+              />
+            </View>
+
+            <Text style={stylesScreen.progressText}>70%</Text>
+          </View>
+
+          <View style={stylesScreen.impactStats}>
+            <View>
+              <Text style={stylesScreen.impactStatValue}>3</Text>
+              <Text style={stylesScreen.impactStatLabel}>Trees planted</Text>
+            </View>
+            <View>
+              <Text style={stylesScreen.impactStatValue}>2.4kg</Text>
+              <Text style={stylesScreen.impactStatLabel}>CO₂ offset</Text>
+            </View>
+            <View>
+              <Text style={stylesScreen.impactStatValue}>18</Text>
+              <Text style={stylesScreen.impactStatLabel}>Eco trips</Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </PremiumScreen>
 
       <HostLocationModal
         visible={showLocationsList}
@@ -273,17 +266,20 @@ export default function HostHomeScreen() {
         onClose={() => setShowLocationsList(false)}
         onSelectLocation={selectLocation}
       />
-    </PremiumScreen>
+    </View>
   );
 }
 
 const stylesScreen = StyleSheet.create({
-  heroRevenueCard: {
-    marginTop: 26,
+  screen: {
+    flex: 1,
+  },
+  heroRevenueWrap: {
+    marginTop: 16,
     alignSelf: "flex-start",
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 22,
     backgroundColor: "rgba(255,255,255,0.12)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.18)",
@@ -295,26 +291,18 @@ const stylesScreen = StyleSheet.create({
   },
   heroRevenueValue: {
     color: "#fff",
-    fontSize: 34,
+    fontSize: 38,
     fontWeight: "700",
     marginTop: 8,
     letterSpacing: -1.2,
   },
-  heroRevenueSubtext: {
-    color: "rgba(255,255,255,0.76)",
-    fontSize: 13,
-    marginTop: 6,
-  },
-  heroMetricWrap: {
-    marginTop: 24,
-  },
-  metricWrap: {
-    marginHorizontal: 24,
-    marginTop: -38,
-  },
   locationCardWrap: {
-    marginTop: 18,
+    marginTop: -34,
     paddingHorizontal: 20,
+    zIndex: 2,
+  },
+  gridWrap: {
+    marginTop: 12,
   },
   section: {
     marginTop: 28,
@@ -323,24 +311,181 @@ const stylesScreen = StyleSheet.create({
   quickRow: {
     flexDirection: "row",
   },
-  featureStack: {
-    gap: 16,
-    marginTop: 16,
-  },
-  bulletGrid: {
-    gap: 14,
-  },
-  bulletCard: {
-    borderRadius: 28,
-    padding: 20,
-    backgroundColor: "rgba(255,255,255,0.55)",
+  emptyStateWrap: {
+    marginTop: 24,
+    marginHorizontal: 20,
+    minHeight: 360,
+    padding: 24,
+    borderRadius: 30,
+    backgroundColor: "rgba(0,0,0,0.18)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.75)",
+    borderColor: "rgba(255,255,255,0.12)",
   },
-  bulletLabel: {
-    color: "#0F172A",
-    fontSize: 14,
-    lineHeight: 22,
+  emptyStateTitle: {
+    alignSelf: "flex-start",
+    fontSize: 22,
+    lineHeight: 30,
+    marginBottom: 10,
+    color: "white",
+  },
+  emptyBulletWrap: {
     marginTop: 10,
+  },
+  secondaryButton: {
+    marginTop: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
+    borderRadius: 18,
+    paddingVertical: 14,
+    backgroundColor: "transparent",
+  },
+  secondaryButtonText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  hostContentBlock: {
+    marginBottom: 18,
+  },
+  hostContentLabel: {
+    color: "#0F172A",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 10,
+    marginLeft: 6,
+  },
+  hostContentCard: {
+    borderRadius: 26,
+    overflow: "hidden",
+  },
+  hostContentBlur: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.44)",
+  },
+  hostContentIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.78)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  hostContentIcon: {
+    color: "#0F172A",
+  },
+  hostContentText: {
+    flex: 1,
+    color: "#0F172A",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  hostContentChevron: {
+    color: "#0F172A",
+  },
+  impactCard: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    borderRadius: 34,
+    padding: 22,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.9)",
+  },
+  impactGlow: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 999,
+    backgroundColor: "rgba(34,197,94,0.12)",
+    top: -80,
+    right: -40,
+  },
+  impactTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  impactEyebrow: {
+    fontSize: 12,
+    color: "#64748B",
+    marginBottom: 6,
+    letterSpacing: 0.3,
+  },
+  impactTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#0F172A",
+    letterSpacing: -0.8,
+  },
+  impactBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  impactBadgeText: {
+    marginLeft: 6,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#15803D",
+  },
+  impactText: {
+    marginTop: 14,
+    fontSize: 14,
+    lineHeight: 24,
+    color: "#475569",
+  },
+  progressWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 22,
+  },
+  progressBar: {
+    flex: 1,
+    height: 10,
+    backgroundColor: "rgba(15,23,42,0.06)",
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  progressFill: {
+    width: "70%",
+    height: "100%",
+    borderRadius: 999,
+  },
+  progressText: {
+    marginLeft: 12,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#15803D",
+  },
+  impactStats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(15,23,42,0.06)",
+  },
+  impactStatValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0F172A",
+    letterSpacing: -0.5,
+  },
+  impactStatLabel: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#64748B",
   },
 });
