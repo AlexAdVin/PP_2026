@@ -10,7 +10,6 @@ import HostHighlightsGrid from "@/components/hostHub/HostHighlightsGrid";
 import HostLocationModal from "@/components/hostHub/HostLocationModal";
 import HostTitle from "@/components/hostHub/HostTitle";
 import ListingCard from "@/components/hostHub/ListingCard";
-import CountUpText from "@/components/layout/premium/CountUpText";
 import PremiumHero from "@/components/layout/premium/PremiumHero";
 import PremiumScreen from "@/components/layout/premium/PremiumScreen";
 import QuickActionCard from "@/components/layout/premium/QuickActionCard";
@@ -164,18 +163,15 @@ export default function HostHomeScreen() {
       <PremiumScreen imageBackground={imageBackground}>
         <PremiumHero
           imageSource={imageBackground}
-          eyebrow="Hosting hub"
-          title={`Welcome back,\n${hostName}.`}
+          eyebrow=""
+          title=""
           subtitle=""
-          heightPercent={0.34}
+          heightPercent={0.22}
         >
-          <View style={stylesScreen.heroRevenueWrap}>
-            <Text style={stylesScreen.heroRevenueEyebrow}>Revenue</Text>
-            <CountUpText
-              value={totals.totalAgreedPrice}
-              formatter={formatCurrency}
-              style={stylesScreen.heroRevenueValue}
-            />
+          <View style={stylesScreen.heroLocationPill}>
+            <Text numberOfLines={1} style={stylesScreen.heroLocationPillText}>
+              {currentLocation?.locName ?? hostName}
+            </Text>
           </View>
         </PremiumHero>
 
@@ -309,27 +305,20 @@ const stylesScreen = StyleSheet.create({
   screen: {
     flex: 1,
   },
-  heroRevenueWrap: {
-    marginTop: 12,
+  heroLocationPill: {
+    marginTop: 8,
     alignSelf: "flex-start",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.12)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.18)",
   },
-  heroRevenueEyebrow: {
-    color: "rgba(255,255,255,0.72)",
-    fontSize: 12,
-    letterSpacing: 0.4,
-  },
-  heroRevenueValue: {
+  heroLocationPillText: {
     color: "#fff",
-    fontSize: 38,
-    fontWeight: "700",
-    marginTop: 8,
-    letterSpacing: -1.2,
+    fontSize: 13,
+    fontWeight: "600",
   },
   metricStripWrap: {
     marginHorizontal: 24,

@@ -23,6 +23,8 @@ export default function PremiumHero({
   children,
   heightPercent = 0.46,
 }: PremiumHeroProps) {
+  const hasCopy = Boolean(eyebrow || title || subtitle || children);
+
   return (
     <View style={[styles.heroWrapper, { height: height * heightPercent }]}>
       <ImageBackground source={imageSource} style={styles.heroImage} imageStyle={styles.heroImageStyle}>
@@ -37,12 +39,14 @@ export default function PremiumHero({
 
         {topBar ? <View style={styles.topBar}>{topBar}</View> : null}
 
-        <View style={styles.heroContent}>
-          <Text style={styles.heroEyebrow}>{eyebrow}</Text>
-          <Text style={styles.heroTitle}>{title}</Text>
-          <Text style={styles.heroSubtitle}>{subtitle}</Text>
-          {children}
-        </View>
+        {hasCopy ? (
+          <View style={styles.heroContent}>
+            {eyebrow ? <Text style={styles.heroEyebrow}>{eyebrow}</Text> : null}
+            {title ? <Text style={styles.heroTitle}>{title}</Text> : null}
+            {subtitle ? <Text style={styles.heroSubtitle}>{subtitle}</Text> : null}
+            {children}
+          </View>
+        ) : null}
       </ImageBackground>
     </View>
   );
