@@ -1,48 +1,83 @@
 import React from "react";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { Icon, Label, NativeTabs, VectorIcon } from "expo-router/unstable-native-tabs";
+import { StyleSheet, TouchableOpacity } from "react-native";
+import { Tabs, useNavigation, useRouter } from "expo-router";
+import { BlurView } from "expo-blur";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
+
+function HeaderLeft() {
+  const navigation = useNavigation<any>();
+
+  return (
+    <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.headerButton}>
+      <Ionicons name="menu" size={24} color="rgba(255,255,255,0.85)" />
+    </TouchableOpacity>
+  );
+}
+
+function HeaderRight() {
+  const router = useRouter();
+
+  return (
+    <TouchableOpacity onPress={() => router.push("/profile")} style={styles.headerButton}>
+      <Ionicons name="person-outline" size={22} color="rgba(255,255,255,0.85)" />
+    </TouchableOpacity>
+  );
+}
 
 export default function HostTabsLayout() {
   return (
-    <NativeTabs
-      backgroundColor="rgba(15,23,42,0.72)"
-      iconColor={{ default: "rgba(255,255,255,0.48)", selected: "#FFFFFF" }}
-      tintColor="rgba(255,255,255,0.86)"
-      labelStyle={{ fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.52)" }}
-      blurEffect="systemChromeMaterialDark"
-      shadowColor="rgba(15,23,42,0.18)"
-      disableTransparentOnScrollEdge
-      minimizeBehavior="onScrollDown"
+    <Tabs
+      screenOptions={{
+        tabBarStyle: { position: "absolute" },
+        tabBarBackground: () => (
+          <BlurView tint="dark" intensity={60} style={StyleSheet.absoluteFill} />
+        ),
+        tabBarActiveTintColor: "#fff",
+        tabBarInactiveTintColor: "rgba(255,255,255,0.3)",
+        tabBarLabelStyle: { fontSize: 16 },
+        headerTransparent: true,
+        headerBackground: () => (
+          <BlurView tint="dark" intensity={18} style={StyleSheet.absoluteFill} />
+        ),
+        headerTitleStyle: {
+          fontSize: 18,
+          color: "rgba(255,255,255,0.85)",
+        },
+        headerLeft: () => <HeaderLeft />,
+        headerRight: () => <HeaderRight />,
+      }}
     >
-      <NativeTabs.Trigger name="index">
-        <Icon
-          src={{
-            default: <VectorIcon family={Ionicons} name="grid-outline" />,
-            selected: <VectorIcon family={Ionicons} name="grid" />,
-          }}
-        />
-        <Label>Hub</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="calendar">
-        <Icon
-          src={{
-            default: <VectorIcon family={Ionicons} name="calendar-clear-outline" />,
-            selected: <VectorIcon family={Ionicons} name="calendar-clear" />,
-          }}
-        />
-        <Label>Calendar</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="reservations">
-        <Icon
-          src={{
-            default: <VectorIcon family={Ionicons} name="receipt-outline" />,
-            selected: <VectorIcon family={Ionicons} name="receipt" />,
-          }}
-        />
-        <Label>Bookings</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Hosting Hub",
+          tabBarLabel: "My Places",
+          tabBarIcon: ({ color, size }) => <FontAwesome name="home" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: "Host Calendar",
+          tabBarLabel: "Calendar",
+          tabBarIcon: ({ color, size }) => <FontAwesome name="calendar" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="reservations"
+        options={{
+          title: "Reservations",
+          tabBarLabel: "Reservations",
+          tabBarIcon: ({ color, size }) => <FontAwesome name="calendar" color={color} size={size} />,
+        }}
+      />
+    </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  headerButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+});
