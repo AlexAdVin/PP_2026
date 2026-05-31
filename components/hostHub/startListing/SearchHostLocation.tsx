@@ -1,9 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
-import { BlurView } from "expo-blur";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
-import styles from "@/global/style/styles";
 
 export default function SearchHostLocation({ address, onChangeAddress }) {
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_APIKEY;
@@ -11,16 +10,16 @@ export default function SearchHostLocation({ address, onChangeAddress }) {
   if (!apiKey) {
     return (
       <View style={stylesSearchHostLocation.main}>
-        <BlurView intensity={32} tint="dark" style={stylesSearchHostLocation.glassInput}> 
-          <View style={styles.txtInIcon}>
-            <Ionicons name="location-sharp" size={26} style={{ color: "#fff" }} />
+        <BlurView intensity={40} tint="light" style={stylesSearchHostLocation.fallbackInput}>
+          <View style={stylesSearchHostLocation.iconWrap}>
+            <Ionicons name="location-sharp" size={20} color="#0F172A" />
           </View>
           <TextInput
             value={address}
             onChangeText={(value) => onChangeAddress({ address: value, latitude: null, longitude: null })}
             placeholder="Enter the address below"
-            placeholderTextColor="rgba(255, 255, 255, 0.3)"
-            style={[styles.txtInput, { marginLeft: 0 }]}
+            placeholderTextColor="rgba(15, 23, 42, 0.35)"
+            style={stylesSearchHostLocation.fallbackTextInput}
             keyboardAppearance="dark"
             autoCorrect={false}
             returnKeyType="search"
@@ -48,30 +47,31 @@ export default function SearchHostLocation({ address, onChangeAddress }) {
           textInputContainer: {
             backgroundColor: "transparent",
             alignItems: "center",
-            borderRadius: 24,
-            overflow: "hidden",
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.12)",
+            paddingHorizontal: 0,
           },
           textInput: {
-            backgroundColor: "rgba(255,255,255,0.08)",
-            color: "#fff",
-            fontSize: 18,
-            marginTop: 7,
+            minHeight: 68,
             borderRadius: 24,
+            backgroundColor: "rgba(255,255,255,0.58)",
+            color: "#0F172A",
+            fontSize: 17,
+            marginTop: 0,
+            paddingLeft: 64,
+            paddingRight: 18,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.85)",
           },
           listView: {
-            backgroundColor: "rgba(9,12,20,0.82)",
-            borderRadius: 20,
-            marginTop: 10,
+            backgroundColor: "rgba(255,255,255,0.92)",
+            borderRadius: 24,
+            marginTop: 12,
             overflow: "hidden",
           },
-          row: { backgroundColor: "rgba(255,255,255,0.08)" },
-          separator: { backgroundColor: "transparent" },
+          row: { backgroundColor: "transparent", paddingVertical: 14 },
+          separator: { backgroundColor: "rgba(148,163,184,0.15)", height: 1, marginHorizontal: 14 },
         }}
         textInputProps={{
-          placeholderTextColor: "rgba(255, 255, 255, 0.3)",
-          fontSize: 19,
+          placeholderTextColor: "rgba(15, 23, 42, 0.35)",
           returnKeyType: "search",
           keyboardAppearance: "dark",
           autoCorrect: false,
@@ -84,8 +84,8 @@ export default function SearchHostLocation({ address, onChangeAddress }) {
           });
         }}
         renderLeftButton={() => (
-          <View style={styles.txtInIcon}>
-            <Ionicons name="location-sharp" size={26} style={{ color: "#fff" }} />
+          <View style={stylesSearchHostLocation.leftIconWrap}>
+            <Ionicons name="location-sharp" size={20} color="#0F172A" />
           </View>
         )}
         renderRow={(rowData) => {
@@ -106,33 +106,57 @@ export default function SearchHostLocation({ address, onChangeAddress }) {
 
 const stylesSearchHostLocation = StyleSheet.create({
   main: {
-    flexDirection: "row",
     marginBottom: 30,
     width: "100%",
   },
-  glassInput: {
-    flex: 1,
+  fallbackInput: {
+    width: "100%",
+    minHeight: 68,
+    borderRadius: 24,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 24,
-    overflow: "hidden",
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(255,255,255,0.58)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(255,255,255,0.85)",
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.82)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  fallbackTextInput: {
+    flex: 1,
+    minHeight: 48,
+    color: "#0F172A",
+    fontSize: 17,
+  },
+  leftIconWrap: {
+    position: "absolute",
+    left: 16,
+    top: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.82)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2,
   },
   containerResultRow: {
     justifyContent: "center",
     paddingLeft: 15,
-    minHeight: 58,
   },
   textResultTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
   },
   textResultDescription: {
     fontSize: 15,
     marginTop: 2,
-    color: "rgba(255,255,255,0.62)",
   },
 });

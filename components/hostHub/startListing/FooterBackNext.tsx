@@ -2,70 +2,80 @@ import React from "react";
 import { Text, Dimensions, Pressable } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import styles from "@/global/style/styles";
-import stylesBtns from "@/global/style/stylesBtns";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width, height } = Dimensions.get("screen");
 
-export default function FooterBackNext({ handlePrev, handleNext, activeSlide }) {
+export default function FooterBackNext({ handlePrev, handleNext, activeSlide, isLastSlide }) {
   return (
     <BlurView
-      tint="dark"
-      intensity={70}
+      tint="light"
+      intensity={55}
       style={{
-        height: height * 0.12,
+        minHeight: height * 0.1,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+        borderRadius: 28,
+        paddingHorizontal: width * 0.04,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.85)",
+        backgroundColor: "rgba(255,255,255,0.46)",
       }}
     >
       {activeSlide !== 0 ? (
         <Pressable
           style={{
             flexDirection: "row",
-            justifyContent: "space-between",
             alignItems: "center",
-            marginVertical: 5,
-            borderRadius: 10,
-            marginHorizontal: width * 0.05,
+            borderRadius: 999,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
           }}
           hitSlop={20}
           onPress={handlePrev}
         >
           <MaterialCommunityIcons
             name="chevron-double-left"
-            size={28}
-            color="white"
-            style={{ marginLeft: width * 0.025 }}
+            size={22}
+            color="#0F172A"
           />
-          <Text style={styles.exText}>Back</Text>
+          <Text style={{ color: "#0F172A", fontSize: 16, fontWeight: "600", marginLeft: 6 }}>Back</Text>
         </Pressable>
-      ) : null}
+      ) : <Pressable style={{ width: 72 }} />}
 
       <Pressable
         style={[
-          stylesBtns.glow,
           {
             flexDirection: "row",
             alignItems: "center",
-            borderWidth: 2,
-            borderColor: "rgba(255,255,255,0.7)",
-            marginLeft: "auto",
-            marginVertical: 5,
-            borderRadius: 10,
-            marginHorizontal: width * 0.05,
+            borderRadius: 999,
+            overflow: "hidden",
           },
         ]}
         hitSlop={20}
         onPress={handleNext}
       >
-        <Text style={styles.exText}>{activeSlide === 4 ? "Create" : "Next"}</Text>
-        <MaterialCommunityIcons
-          name={activeSlide === 4 ? "check-bold" : "chevron-double-right"}
-          size={28}
-          color="white"
-          style={{ marginRight: width * 0.025 }}
-        />
+        <LinearGradient
+          colors={["#0F172A", "#334155"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 18,
+            paddingVertical: 14,
+          }}
+        >
+          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginRight: 8 }}>
+            {isLastSlide ? "Create" : "Next"}
+          </Text>
+          <MaterialCommunityIcons
+            name={isLastSlide ? "check-bold" : "chevron-double-right"}
+            size={22}
+            color="#fff"
+          />
+        </LinearGradient>
       </Pressable>
     </BlurView>
   );

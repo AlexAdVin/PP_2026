@@ -15,37 +15,17 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import HostTitle from "@/components/hostHub/HostTitle";
 import FooterBackNext from "@/components/hostHub/startListing/FooterBackNext";
 import ManageHostLocation from "@/components/hostHub/startListing/ManageHostLocation";
 import PriceSection from "@/components/hostHub/startListing/PriceSection";
 import RenderIncrementer from "@/components/hostHub/startListing/RenderIncrementer";
 import SelectPType from "@/components/hostHub/startListing/SelectPType";
-import styles from "@/global/style/styles";
-import stylesBtns from "@/global/style/stylesBtns";
-import stylesStartListing from "@/global/style/stylesStartListing";
+import AmbientBackground from "@/components/layout/AmbientBackground";
 import { useHostStore } from "@/src/hostStore";
 
-const COLORS = { primary: "#2825", white: "#fff" };
-const startListingStyles = stylesStartListing({ COLORS });
+const imageBackground = require("@/assets/img/6232c93f3ccdf.jpg");
 
-type ListingField = "type" | "addrLoc" | "nrOfLots" | "hrPrice" | "locName";
-
-type ListingStep = {
-  id: string;
-  q: string;
-  field: ListingField;
-  ph?: string;
-  icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-};
-
-type ManagedLocationChange = {
-  address: string;
-  latitude: number | null;
-  longitude: number | null;
-};
-
-const content: ListingStep[] = [
+const content = [
   {
     id: "1",
     q: "What type of\nparking do you offer?",
@@ -91,6 +71,7 @@ export default function StartListingScreen() {
 
   const slideContent = content[activeSlide];
   const progress = (activeSlide / (content.length - 1)) * 100;
+  const isLastSlide = activeSlide === content.length - 1;
 
   const validations = useMemo(
     () => ({
@@ -102,8 +83,6 @@ export default function StartListingScreen() {
     }),
     [listingData],
   );
-
-  const isStepValid = validations[slideContent.field];
 
   const showValidationError = () => {
     if (!validations.type) {
@@ -126,7 +105,7 @@ export default function StartListingScreen() {
   };
 
   const goNext = () => {
-    if (!isStepValid) {
+    if (!validations[slideContent.field]) {
       showValidationError();
       return;
     }
@@ -161,162 +140,234 @@ export default function StartListingScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <LinearGradient colors={["rgba(200,0,0,0.05)", "#000"]} style={StyleSheet.absoluteFill}>
+      <View style={wizardStyles.screen}>
+        <LinearGradient colors={["#EEF2F5", "#F8FAFC", "#FFFFFF"]} style={StyleSheet.absoluteFill} />
+        <AmbientBackground imageBackground={imageBackground} />
+
         <KeyboardAvoidingView
-          style={stylesScreen.flex}
+          style={wizardStyles.flex}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 56 : 24}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 74 : 24}
         >
-          <HostTitle title={slideContent.q} />
-
-          <View style={startListingStyles.footerContainer}>
-            <ScrollView
-              contentContainerStyle={stylesScreen.scrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <BlurView intensity={55} tint="dark" style={stylesScreen.contentCard}>
-                <LinearGradient
-                  colors={["rgba(255,255,255,0.22)", "rgba(255,255,255,0.06)"]}
-                  style={stylesScreen.cardGlow}
-                />
-
-                {activeSlide === 0 ? <SelectPType type={listingData.type} onChange={(value: string) => updateListingField("type", value)} /> : null}
-
-                {activeSlide === 1 ? (
-                  <ManageHostLocation
-                    address={listingData.addrLoc}
-                    latitude={listingData.lat}
-                    longitude={listingData.lng}
-                    onChange={({ address, latitude, longitude }: ManagedLocationChange) =>
-                      setListingData({
-                        addrLoc: address,
-                        lat: latitude,
-                        lng: longitude,
-                      })
-                    }
-                  />
-                ) : null}
-
-                {activeSlide === 2 ? (
-                  <>
-                    <Text style={[startListingStyles.titleField, startListingStyles.titleFieldAlignment]}>
-                      {slideContent.ph}
-                    </Text>
-                    <BlurView intensity={32} tint="dark" style={stylesScreen.infoRow}>
-                      <MaterialCommunityIcons name="arrow-expand-horizontal" size={35} style={styles.txtMultiIcon} />
-                      <View style={styles.txtInCFlex}>
-                        <Text style={styles.txtMultiInfo}>Passenger car</Text>
-                        <Text style={styles.txtMultiSubInfo}>Length: 5 m, Width: 2.5 m, Height: 2.2 m</Text>
-                      </View>
-                    </BlurView>
-                    <RenderIncrementer
-                      value={Number(listingData.nrOfLots)}
-                      onChange={(nextValue: number) => updateListingField("nrOfLots", nextValue)}
-                    />
-                  </>
-                ) : null}
-
-                {activeSlide === 3 ? (
-                  <>
-                    <Text style={[startListingStyles.titleField, startListingStyles.titleFieldAlignment]}>
-                      {slideContent.q}
-                    </Text>
-                    <PriceSection
-                      value={Number(listingData.hrPrice)}
-                      onChange={(nextValue: number) => updateListingField("hrPrice", nextValue)}
-                    />
-                  </>
-                ) : null}
-
-                {activeSlide === 4 ? (
-                  <View style={stylesScreen.fullWidth}>
-                    <Text style={[startListingStyles.titleField, startListingStyles.titleFieldAlignment]}>
-                      Enter a name for the parking
-                    </Text>
-
-                    <BlurView intensity={32} tint="dark" style={stylesScreen.inputRow}>
-                      <MaterialCommunityIcons name={slideContent.icon} size={26} style={styles.txtInIcon} />
-                      <TextInput
-                        value={listingData.locName}
-                        onChangeText={(value) => updateListingField("locName", value)}
-                        placeholder={slideContent.ph}
-                        placeholderTextColor="rgba(255,255,255,0.3)"
-                        style={styles.txtInput}
-                        keyboardAppearance="dark"
-                        autoComplete="off"
-                        autoCorrect={false}
-                        returnKeyType="done"
-                        blurOnSubmit
-                      />
-                    </BlurView>
-                  </View>
-                ) : null}
-              </BlurView>
-            </ScrollView>
-
-            <View style={[startListingStyles.progressBar, stylesBtns.glow]}>
-              <View style={{ ...startListingStyles.progressBarFill, width: `${progress}%` }} />
+          <ScrollView
+            contentContainerStyle={wizardStyles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={wizardStyles.heroBlock}>
+              <Text style={wizardStyles.eyebrow}>Host program</Text>
+              <Text style={wizardStyles.title}>{slideContent.q}</Text>
+              <Text style={wizardStyles.subtitle}>
+                Step {activeSlide + 1} of {content.length}. Build a polished listing with the same premium feel as the landing experience.
+              </Text>
             </View>
 
-            <FooterBackNext handlePrev={goBack} handleNext={goNext} activeSlide={activeSlide} />
+            <BlurView intensity={58} tint="light" style={wizardStyles.panel}>
+              <LinearGradient
+                colors={["rgba(255,255,255,0.62)", "rgba(255,255,255,0.28)"]}
+                style={wizardStyles.panelGlow}
+              />
+
+              {activeSlide === 0 ? <SelectPType type={listingData.type} onChange={(value) => updateListingField("type", value)} /> : null}
+
+              {activeSlide === 1 ? (
+                <ManageHostLocation
+                  address={listingData.addrLoc}
+                  latitude={listingData.lat}
+                  longitude={listingData.lng}
+                  onChange={({ address, latitude, longitude }) =>
+                    setListingData({
+                      addrLoc: address,
+                      lat: latitude,
+                      lng: longitude,
+                    })
+                  }
+                />
+              ) : null}
+
+              {activeSlide === 2 ? (
+                <>
+                  <Text style={wizardStyles.sectionTitle}>{slideContent.ph}</Text>
+                  <BlurView intensity={40} tint="light" style={wizardStyles.infoCard}>
+                    <MaterialCommunityIcons name="arrow-expand-horizontal" size={30} color="#0F172A" style={wizardStyles.infoIcon} />
+                    <View style={wizardStyles.infoCopy}>
+                      <Text style={wizardStyles.infoTitle}>Passenger car</Text>
+                      <Text style={wizardStyles.infoSubtitle}>Length: 5 m, Width: 2.5 m, Height: 2.2 m</Text>
+                    </View>
+                  </BlurView>
+                  <RenderIncrementer
+                    value={Number(listingData.nrOfLots)}
+                    onChange={(nextValue) => updateListingField("nrOfLots", nextValue)}
+                  />
+                </>
+              ) : null}
+
+              {activeSlide === 3 ? (
+                <>
+                  <Text style={wizardStyles.sectionTitle}>Set a confident hourly rate</Text>
+                  <PriceSection
+                    value={Number(listingData.hrPrice)}
+                    onChange={(nextValue) => updateListingField("hrPrice", nextValue)}
+                  />
+                </>
+              ) : null}
+
+              {activeSlide === 4 ? (
+                <View style={wizardStyles.fullWidth}>
+                  <Text style={wizardStyles.sectionTitle}>Enter a name for the parking</Text>
+
+                  <BlurView intensity={40} tint="light" style={wizardStyles.inputRow}>
+                    <MaterialCommunityIcons name={slideContent.icon} size={24} color="#0F172A" style={wizardStyles.inputIcon} />
+                    <TextInput
+                      value={listingData.locName}
+                      onChangeText={(value) => updateListingField("locName", value)}
+                      placeholder={slideContent.ph}
+                      placeholderTextColor="rgba(15,23,42,0.35)"
+                      style={wizardStyles.textInput}
+                      keyboardAppearance="dark"
+                      autoComplete="off"
+                      autoCorrect={false}
+                      returnKeyType="done"
+                    />
+                  </BlurView>
+                </View>
+              ) : null}
+            </BlurView>
+          </ScrollView>
+
+          <View style={wizardStyles.footerWrap}>
+            <View style={wizardStyles.progressTrack}>
+              <LinearGradient
+                colors={["#0F172A", "#475569"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[wizardStyles.progressFill, { width: `${progress}%` }]}
+              />
+            </View>
+
+            <FooterBackNext handlePrev={goBack} handleNext={goNext} activeSlide={activeSlide} isLastSlide={isLastSlide} />
           </View>
         </KeyboardAvoidingView>
-      </LinearGradient>
+      </View>
     </TouchableWithoutFeedback>
   );
 }
 
-const stylesScreen = StyleSheet.create({
+const wizardStyles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
   flex: {
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
-    justifyContent: "flex-end",
-    paddingBottom: 16,
+    paddingTop: 88,
+    paddingHorizontal: 20,
+    paddingBottom: 190,
   },
-  contentCard: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    paddingTop: 20,
-    paddingBottom: 22,
-    borderRadius: 32,
+  heroBlock: {
+    marginBottom: 24,
+  },
+  eyebrow: {
+    color: "#64748B",
+    fontSize: 13,
+    letterSpacing: 0.4,
+    marginBottom: 10,
+  },
+  title: {
+    color: "#0F172A",
+    fontSize: 38,
+    lineHeight: 42,
+    fontWeight: "700",
+    letterSpacing: -1.2,
+  },
+  subtitle: {
+    color: "#475569",
+    fontSize: 15,
+    lineHeight: 24,
+    marginTop: 12,
+    maxWidth: "92%",
+  },
+  panel: {
+    borderRadius: 34,
+    padding: 20,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-    backgroundColor: "rgba(0,0,0,0.18)",
+    borderColor: "rgba(255,255,255,0.85)",
+    backgroundColor: "rgba(255,255,255,0.45)",
   },
-  cardGlow: {
+  panelGlow: {
     ...StyleSheet.absoluteFillObject,
   },
-  infoRow: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    flexDirection: "row",
-    marginBottom: 10,
-    marginHorizontal: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    alignItems: "center",
-    borderRadius: 24,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: 14,
   },
-  inputRow: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    flexDirection: "row",
-    marginBottom: 6,
-    marginHorizontal: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    alignItems: "center",
+  infoCard: {
     borderRadius: 24,
-    overflow: "hidden",
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
+    backgroundColor: "rgba(255,255,255,0.52)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: "rgba(255,255,255,0.8)",
+  },
+  infoIcon: {
+    marginRight: 12,
+  },
+  infoCopy: {
+    flex: 1,
+  },
+  infoTitle: {
+    color: "#0F172A",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  infoSubtitle: {
+    color: "#64748B",
+    fontSize: 13,
+    marginTop: 4,
   },
   fullWidth: {
     width: "100%",
+  },
+  inputRow: {
+    width: "100%",
+    minHeight: 68,
+    borderRadius: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(255,255,255,0.52)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  textInput: {
+    flex: 1,
+    minHeight: 52,
+    color: "#0F172A",
+    fontSize: 17,
+  },
+  footerWrap: {
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === "ios" ? 28 : 20,
+  },
+  progressTrack: {
+    height: 10,
+    borderRadius: 999,
+    overflow: "hidden",
+    backgroundColor: "rgba(15,23,42,0.08)",
+    marginBottom: 14,
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 999,
   },
 });

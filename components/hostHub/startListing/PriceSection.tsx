@@ -1,13 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Text, TextInput, TouchableOpacity } from "react-native";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { BlurView } from "expo-blur";
-import stylesBtns from "@/global/style/stylesBtns";
-import stylesStartListing from "@/global/style/stylesStartListing";
-
-const COLORS = { primary: "#2825", white: "#fff" };
 
 export default function PriceSection({ value, onChange }) {
-  const startListingStyles = stylesStartListing({ COLORS });
   const [priceInput, setPriceInput] = useState(String(value ?? 25));
 
   useEffect(() => {
@@ -32,24 +27,66 @@ export default function PriceSection({ value, onChange }) {
   };
 
   return (
-    <BlurView intensity={32} tint="dark" style={[stylesBtns.optionBtnWide, { alignItems: "center", borderRadius: 28, overflow: "hidden", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", backgroundColor: "rgba(255,255,255,0.08)" }]}> 
-      <TouchableOpacity onPress={() => adjustCount(-1)} style={[startListingStyles.button, stylesBtns.glow]}>
-        <Text style={startListingStyles.buttonText}>-</Text>
+    <BlurView
+      intensity={44}
+      tint="light"
+      style={{
+        width: "100%",
+        minHeight: 88,
+        borderRadius: 28,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.82)",
+        backgroundColor: "rgba(255,255,255,0.42)",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: 18,
+      }}
+    >
+      <TouchableOpacity onPress={() => adjustCount(-1)} style={priceButtonStyle}>
+        <Text style={priceButtonText}>-</Text>
       </TouchableOpacity>
 
-      <TextInput
-        value={priceInput}
-        onChangeText={handlePriceChange}
-        placeholder="e.g. 12.5"
-        placeholderTextColor="rgba(255,255,255,0.35)"
-        style={startListingStyles.txtIncrementer}
-        keyboardType="numeric"
-        keyboardAppearance="dark"
-      />
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ color: "#64748B", fontSize: 12, marginBottom: 6 }}>DKK per hour</Text>
+        <TextInput
+          value={priceInput}
+          onChangeText={handlePriceChange}
+          placeholder="e.g. 12.5"
+          placeholderTextColor="rgba(15,23,42,0.3)"
+          style={priceInputStyle}
+          keyboardType="numeric"
+          keyboardAppearance="dark"
+          returnKeyType="done"
+        />
+      </View>
 
-      <TouchableOpacity onPress={() => adjustCount(1)} style={[startListingStyles.button, stylesBtns.glow]}>
-        <Text style={startListingStyles.buttonText}>+</Text>
+      <TouchableOpacity onPress={() => adjustCount(1)} style={priceButtonStyle}>
+        <Text style={priceButtonText}>+</Text>
       </TouchableOpacity>
     </BlurView>
   );
 }
+
+const priceButtonStyle = {
+  width: 48,
+  height: 48,
+  borderRadius: 24,
+  backgroundColor: "#0F172A",
+  justifyContent: "center" as const,
+  alignItems: "center" as const,
+};
+
+const priceButtonText = {
+  color: "#fff",
+  fontSize: 24,
+  fontWeight: "700" as const,
+};
+
+const priceInputStyle = {
+  minWidth: 120,
+  color: "#0F172A",
+  fontSize: 34,
+  fontWeight: "700" as const,
+  textAlign: "center" as const,
+};
