@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
+import { BlurView } from "expo-blur";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "@/global/style/styles";
@@ -10,7 +11,7 @@ export default function SearchHostLocation({ address, onChangeAddress }) {
   if (!apiKey) {
     return (
       <View style={stylesSearchHostLocation.main}>
-        <View style={[styles.textInputContainer, { flex: 1 }]}> 
+        <BlurView intensity={32} tint="dark" style={stylesSearchHostLocation.glassInput}> 
           <View style={styles.txtInIcon}>
             <Ionicons name="location-sharp" size={26} style={{ color: "#fff" }} />
           </View>
@@ -22,8 +23,9 @@ export default function SearchHostLocation({ address, onChangeAddress }) {
             style={[styles.txtInput, { marginLeft: 0 }]}
             keyboardAppearance="dark"
             autoCorrect={false}
+            returnKeyType="search"
           />
-        </View>
+        </BlurView>
       </View>
     );
   }
@@ -44,19 +46,27 @@ export default function SearchHostLocation({ address, onChangeAddress }) {
         nearbyPlacesAPI="GooglePlacesSearch"
         styles={{
           textInputContainer: {
-            backgroundColor: "rgba(0,0,0,0.2)",
+            backgroundColor: "transparent",
             alignItems: "center",
+            borderRadius: 24,
+            overflow: "hidden",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.12)",
           },
           textInput: {
-            backgroundColor: "transparent",
+            backgroundColor: "rgba(255,255,255,0.08)",
             color: "#fff",
             fontSize: 18,
             marginTop: 7,
+            borderRadius: 24,
           },
           listView: {
-            backgroundColor: "transparent",
+            backgroundColor: "rgba(9,12,20,0.82)",
+            borderRadius: 20,
+            marginTop: 10,
+            overflow: "hidden",
           },
-          row: { backgroundColor: "rgba(255,255,255,0.3)" },
+          row: { backgroundColor: "rgba(255,255,255,0.08)" },
           separator: { backgroundColor: "transparent" },
         }}
         textInputProps={{
@@ -100,16 +110,29 @@ const stylesSearchHostLocation = StyleSheet.create({
     marginBottom: 30,
     width: "100%",
   },
+  glassInput: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
   containerResultRow: {
     justifyContent: "center",
     paddingLeft: 15,
+    minHeight: 58,
   },
   textResultTitle: {
     fontSize: 16,
     fontWeight: "600",
+    color: "#fff",
   },
   textResultDescription: {
     fontSize: 15,
     marginTop: 2,
+    color: "rgba(255,255,255,0.62)",
   },
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TextInput, TouchableOpacity } from "react-native";
+import { BlurView } from "expo-blur";
 import stylesBtns from "@/global/style/stylesBtns";
 import stylesStartListing from "@/global/style/stylesStartListing";
 
@@ -31,7 +32,7 @@ export default function PriceSection({ value, onChange }) {
   };
 
   return (
-    <View style={[stylesBtns.optionBtnWide, { alignItems: "center" }]}> 
+    <BlurView intensity={32} tint="dark" style={[stylesBtns.optionBtnWide, { alignItems: "center", borderRadius: 28, overflow: "hidden", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", backgroundColor: "rgba(255,255,255,0.08)" }]}> 
       <TouchableOpacity onPress={() => adjustCount(-1)} style={[startListingStyles.button, stylesBtns.glow]}>
         <Text style={startListingStyles.buttonText}>-</Text>
       </TouchableOpacity>
@@ -49,6 +50,6 @@ export default function PriceSection({ value, onChange }) {
       <TouchableOpacity onPress={() => adjustCount(1)} style={[startListingStyles.button, stylesBtns.glow]}>
         <Text style={startListingStyles.buttonText}>+</Text>
       </TouchableOpacity>
-    </View>
+    </BlurView>
   );
 }

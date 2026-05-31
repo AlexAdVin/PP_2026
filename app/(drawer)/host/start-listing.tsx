@@ -2,12 +2,16 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -25,7 +29,23 @@ import { useHostStore } from "@/src/hostStore";
 const COLORS = { primary: "#2825", white: "#fff" };
 const startListingStyles = stylesStartListing({ COLORS });
 
-const content = [
+type ListingField = "type" | "addrLoc" | "nrOfLots" | "hrPrice" | "locName";
+
+type ListingStep = {
+  id: string;
+  q: string;
+  field: ListingField;
+  ph?: string;
+  icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+};
+
+type ManagedLocationChange = {
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+const content: ListingStep[] = [
   {
     id: "1",
     q: "What type of\nparking do you offer?",
@@ -83,6 +103,8 @@ export default function StartListingScreen() {
     [listingData],
   );
 
+  const isStepValid = validations[slideContent.field];
+
   const showValidationError = () => {
     if (!validations.type) {
       Alert.alert("Select parking type", "Choose the parking type before continuing.");
@@ -104,7 +126,7 @@ export default function StartListingScreen() {
   };
 
   const goNext = () => {
-    if (!validations[slideContent.field]) {
+    if (!isStepValid) {
       showValidationError();
       return;
     }
@@ -140,88 +162,161 @@ export default function StartListingScreen() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <LinearGradient colors={["rgba(200,0,0,0.05)", "#000"]} style={StyleSheet.absoluteFill}>
-        <HostTitle title={slideContent.q} />
+        <KeyboardAvoidingView
+          style={stylesScreen.flex}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 56 : 24}
+        >
+          <HostTitle title={slideContent.q} />
 
-        <View style={startListingStyles.footerContainer}>
-          <View style={[styles.fieldContainer, { alignItems: "center", paddingVertical: 20 }]}> 
-            {activeSlide === 0 ? <SelectPType type={listingData.type} onChange={(value) => updateListingField("type", value)} /> : null}
-
-            {activeSlide === 1 ? (
-              <ManageHostLocation
-                address={listingData.addrLoc}
-                latitude={listingData.lat}
-                longitude={listingData.lng}
-                onChange={({ address, latitude, longitude }) =>
-                  setListingData({
-                    addrLoc: address,
-                    lat: latitude,
-                    lng: longitude,
-                  })
-                }
-              />
-            ) : null}
-
-            {activeSlide === 2 ? (
-              <>
-                <Text style={[startListingStyles.titleField, startListingStyles.titleFieldAlignment]}>
-                  {slideContent.ph}
-                </Text>
-                <View style={styles.txtInC}>
-                  <MaterialCommunityIcons name="arrow-expand-horizontal" size={35} style={styles.txtMultiIcon} />
-                  <View style={styles.txtInCFlex}>
-                    <Text style={styles.txtMultiInfo}>Passenger car</Text>
-                    <Text style={styles.txtMultiSubInfo}>Length: 5 m, Width: 2.5 m, Height: 2.2 m</Text>
-                  </View>
-                </View>
-                <RenderIncrementer
-                  value={Number(listingData.nrOfLots)}
-                  onChange={(nextValue) => updateListingField("nrOfLots", nextValue)}
+          <View style={startListingStyles.footerContainer}>
+            <ScrollView
+              contentContainerStyle={stylesScreen.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <BlurView intensity={55} tint="dark" style={stylesScreen.contentCard}>
+                <LinearGradient
+                  colors={["rgba(255,255,255,0.22)", "rgba(255,255,255,0.06)"]}
+                  style={stylesScreen.cardGlow}
                 />
-              </>
-            ) : null}
 
-            {activeSlide === 3 ? (
-              <>
-                <Text style={[startListingStyles.titleField, startListingStyles.titleFieldAlignment]}>
-                  {slideContent.q}
-                </Text>
-                <PriceSection
-                  value={Number(listingData.hrPrice)}
-                  onChange={(nextValue) => updateListingField("hrPrice", nextValue)}
-                />
-              </>
-            ) : null}
+                {activeSlide === 0 ? <SelectPType type={listingData.type} onChange={(value: string) => updateListingField("type", value)} /> : null}
 
-            {activeSlide === 4 ? (
-              <View style={{ width: "100%" }}>
-                <Text style={[startListingStyles.titleField, startListingStyles.titleFieldAlignment]}>
-                  Enter a name for the parking
-                </Text>
-
-                <View style={styles.txtInC}>
-                  <MaterialCommunityIcons name={slideContent.icon} size={26} style={styles.txtInIcon} />
-                  <TextInput
-                    value={listingData.locName}
-                    onChangeText={(value) => updateListingField("locName", value)}
-                    placeholder={slideContent.ph}
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    style={styles.txtInput}
-                    keyboardAppearance="dark"
-                    autoComplete="off"
-                    autoCorrect={false}
+                {activeSlide === 1 ? (
+                  <ManageHostLocation
+                    address={listingData.addrLoc}
+                    latitude={listingData.lat}
+                    longitude={listingData.lng}
+                    onChange={({ address, latitude, longitude }: ManagedLocationChange) =>
+                      setListingData({
+                        addrLoc: address,
+                        lat: latitude,
+                        lng: longitude,
+                      })
+                    }
                   />
-                </View>
-              </View>
-            ) : null}
-          </View>
+                ) : null}
 
-          <View style={[startListingStyles.progressBar, stylesBtns.glow]}>
-            <View style={{ ...startListingStyles.progressBarFill, width: `${progress}%` }} />
-          </View>
+                {activeSlide === 2 ? (
+                  <>
+                    <Text style={[startListingStyles.titleField, startListingStyles.titleFieldAlignment]}>
+                      {slideContent.ph}
+                    </Text>
+                    <BlurView intensity={32} tint="dark" style={stylesScreen.infoRow}>
+                      <MaterialCommunityIcons name="arrow-expand-horizontal" size={35} style={styles.txtMultiIcon} />
+                      <View style={styles.txtInCFlex}>
+                        <Text style={styles.txtMultiInfo}>Passenger car</Text>
+                        <Text style={styles.txtMultiSubInfo}>Length: 5 m, Width: 2.5 m, Height: 2.2 m</Text>
+                      </View>
+                    </BlurView>
+                    <RenderIncrementer
+                      value={Number(listingData.nrOfLots)}
+                      onChange={(nextValue: number) => updateListingField("nrOfLots", nextValue)}
+                    />
+                  </>
+                ) : null}
 
-          <FooterBackNext handlePrev={goBack} handleNext={goNext} activeSlide={activeSlide} />
-        </View>
+                {activeSlide === 3 ? (
+                  <>
+                    <Text style={[startListingStyles.titleField, startListingStyles.titleFieldAlignment]}>
+                      {slideContent.q}
+                    </Text>
+                    <PriceSection
+                      value={Number(listingData.hrPrice)}
+                      onChange={(nextValue: number) => updateListingField("hrPrice", nextValue)}
+                    />
+                  </>
+                ) : null}
+
+                {activeSlide === 4 ? (
+                  <View style={stylesScreen.fullWidth}>
+                    <Text style={[startListingStyles.titleField, startListingStyles.titleFieldAlignment]}>
+                      Enter a name for the parking
+                    </Text>
+
+                    <BlurView intensity={32} tint="dark" style={stylesScreen.inputRow}>
+                      <MaterialCommunityIcons name={slideContent.icon} size={26} style={styles.txtInIcon} />
+                      <TextInput
+                        value={listingData.locName}
+                        onChangeText={(value) => updateListingField("locName", value)}
+                        placeholder={slideContent.ph}
+                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        style={styles.txtInput}
+                        keyboardAppearance="dark"
+                        autoComplete="off"
+                        autoCorrect={false}
+                        returnKeyType="done"
+                        blurOnSubmit
+                      />
+                    </BlurView>
+                  </View>
+                ) : null}
+              </BlurView>
+            </ScrollView>
+
+            <View style={[startListingStyles.progressBar, stylesBtns.glow]}>
+              <View style={{ ...startListingStyles.progressBarFill, width: `${progress}%` }} />
+            </View>
+
+            <FooterBackNext handlePrev={goBack} handleNext={goNext} activeSlide={activeSlide} />
+          </View>
+        </KeyboardAvoidingView>
       </LinearGradient>
     </TouchableWithoutFeedback>
   );
 }
+
+const stylesScreen = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "flex-end",
+    paddingBottom: 16,
+  },
+  contentCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingTop: 20,
+    paddingBottom: 22,
+    borderRadius: 32,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(0,0,0,0.18)",
+  },
+  cardGlow: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  infoRow: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    flexDirection: "row",
+    marginBottom: 10,
+    marginHorizontal: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignItems: "center",
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  inputRow: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    flexDirection: "row",
+    marginBottom: 6,
+    marginHorizontal: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignItems: "center",
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  fullWidth: {
+    width: "100%",
+  },
+});
