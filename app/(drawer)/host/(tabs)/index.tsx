@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,6 +15,7 @@ import PremiumHero from "@/components/layout/premium/PremiumHero";
 import PremiumScreen from "@/components/layout/premium/PremiumScreen";
 import QuickActionCard from "@/components/layout/premium/QuickActionCard";
 import SectionHeader from "@/components/layout/premium/SectionHeader";
+import mockHostData from "@/model/mockLocations.json";
 import { selectCurrentHostLocation, selectHasHostAccess, useHostStore } from "@/src/hostStore";
 
 const imageBackground = require("@/assets/img/6232c93f3ccdf.jpg");
@@ -57,6 +58,7 @@ const getLocationTotals = (location: any) => {
 export default function HostHomeScreen() {
   const router = useRouter();
   const hostProfile = useHostStore((state) => state.hostProfile);
+  const hydrateHostData = useHostStore((state) => state.hydrateHostData);
   const hostLotState = useHostStore((state) => state.hostLotState);
   const hasHostAccess = useHostStore(selectHasHostAccess);
   const showLocationsList = useHostStore((state) => state.showLocationsList);
@@ -65,10 +67,24 @@ export default function HostHomeScreen() {
   const toggleLocationActive = useHostStore((state) => state.toggleLocationActive);
   const currentLocation = useHostStore(selectCurrentHostLocation);
 
+  useEffect(() => {
+    if (!hostLotState.locations?.length) {
+      hydrateHostData(mockHostData);
+    }
+  }, [hostLotState.locations?.length, hydrateHostData]);
+
   const totals = useMemo(() => getLocationTotals(currentLocation), [currentLocation]);
   const selectedIndex = useHostStore((state) => state.checkedPostIndex);
   const isCurrentLocationActive = currentLocation?.isActive ?? true;
   const hostName = hostProfile.hostName || "welcome back";
+  const activeLocations = useMemo(
+    () => (hostLotState.locations ?? []).filter((location: any) => location?.isActive ?? true).length,
+    [hostLotState.locations],
+  );
+  const totalLots = useMemo(
+    () => (hostLotState.locations ?? []).reduce((sum: number, location: any) => sum + Number(location?.nrOfLots ?? location?.Lots?.items?.length ?? 0), 0),
+    [hostLotState.locations],
+  );
 
   const highlights = useMemo(
     () => [
@@ -78,7 +94,7 @@ export default function HostHomeScreen() {
         count: 3,
       },
       {
-        title: "Payout",
+        title: "Revenue",
         icon: "trending-up" as const,
         count: formatCurrency(totals.totalAgreedPrice),
       },
@@ -151,7 +167,7 @@ export default function HostHomeScreen() {
           eyebrow="Hosting hub"
           title={`Welcome back,\n${hostName}.`}
           subtitle=""
-          heightPercent={0.38}
+          heightPercent={0.34}
         >
           <View style={stylesScreen.heroRevenueWrap}>
             <Text style={stylesScreen.heroRevenueEyebrow}>Revenue</Text>
@@ -162,6 +178,25 @@ export default function HostHomeScreen() {
             />
           </View>
         </PremiumHero>
+
+        <View style={stylesScreen.metricStripWrap}>
+          <BlurView intensity={50} tint="light" style={stylesScreen.metricStrip}>
+            <View style={stylesScreen.metricItem}>
+              <Text style={stylesScreen.metricValue}>{activeLocations}</Text>
+              <Text style={stylesScreen.metricLabel}>Live locations</Text>
+            </View>
+            <View style={stylesScreen.metricDivider} />
+            <View style={stylesScreen.metricItem}>
+              <Text style={stylesScreen.metricValue}>{totalLots}</Text>
+              <Text style={stylesScreen.metricLabel}>Total lots</Text>
+            </View>
+            <View style={stylesScreen.metricDivider} />
+            <View style={stylesScreen.metricItem}>
+              <Text style={stylesScreen.metricValue}>{totals.totalTransactionCount}</Text>
+              <Text style={stylesScreen.metricLabel}>Bookings</Text>
+            </View>
+          </BlurView>
+        </View>
 
         <View style={stylesScreen.locationCardWrap}>
           <ListingCard
@@ -275,7 +310,7 @@ const stylesScreen = StyleSheet.create({
     flex: 1,
   },
   heroRevenueWrap: {
-    marginTop: 16,
+    marginTop: 12,
     alignSelf: "flex-start",
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -296,13 +331,48 @@ const stylesScreen = StyleSheet.create({
     marginTop: 8,
     letterSpacing: -1.2,
   },
-  locationCardWrap: {
+  metricStripWrap: {
+    marginHorizontal: 24,
     marginTop: -34,
+    zIndex: 2,
+  },
+  metricStrip: {
+    borderRadius: 28,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.45)",
+  },
+  metricItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  metricValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  metricLabel: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#64748B",
+  },
+  metricDivider: {
+    width: 1,
+    backgroundColor: "rgba(148,163,184,0.18)",
+  },
+  locationCardWrap: {
+    marginTop: 14,
     paddingHorizontal: 20,
     zIndex: 2,
   },
   gridWrap: {
-    marginTop: 12,
+    marginTop: 6,
+    paddingHorizontal: 20,
   },
   section: {
     marginTop: 28,

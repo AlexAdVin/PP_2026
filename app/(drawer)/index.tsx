@@ -50,6 +50,18 @@ export default function Landing() {
               style={StyleSheet.absoluteFill}
             />
 
+            {/* TOP BAR */}
+            {/*             <View style={styles.heroTopRow}>
+              <BlurView intensity={30} tint="dark" style={styles.topPill}>
+                <Ionicons name="sparkles" size={14} color="#fff" />
+                <Text style={styles.topPillText}>Premium Parking</Text>
+              </BlurView>
+
+              <BlurView intensity={30} tint="dark" style={styles.profileBtn}>
+                <Ionicons name="person-outline" size={18} color="#fff" />
+              </BlurView>
+            </View> */}
+
             <View style={styles.topBar}>
               <TouchableOpacity
                 style={styles.glassBtn}
@@ -81,6 +93,28 @@ export default function Landing() {
             </View>
           </ImageBackground>
         </View>
+
+        {/* FLOATING STATS */}
+        {/*         <BlurView intensity={50} tint="light" style={styles.statsCard}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>240+</Text>
+            <Text style={styles.statLabel}>Hosts</Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>4.9</Text>
+            <Text style={styles.statLabel}>Rating</Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>24/7</Text>
+            <Text style={styles.statLabel}>Access</Text>
+          </View>
+        </BlurView> */}
 
         <Animated.View entering={FadeInDown.duration(600)}></Animated.View>
         <TouchableOpacity

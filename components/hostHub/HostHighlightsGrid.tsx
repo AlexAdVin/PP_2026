@@ -1,7 +1,7 @@
 import React from "react";
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
-import stylesBtns from "@/global/style/stylesBtns";
 
 const { width } = Dimensions.get("screen");
 
@@ -18,18 +18,23 @@ type HostHighlightsGridProps = {
 
 export default function HostHighlightsGrid({ highlights }: HostHighlightsGridProps) {
   return (
-    <View style={[stylesBoolElements.highlightsContainer, stylesBtns.glow]}>
+    <View style={stylesBoolElements.highlightsContainer}>
       {highlights.map((highlight) => (
         <TouchableOpacity
           key={highlight.title}
           onPress={highlight.onPress}
           style={stylesBoolElements.highlightCard}
+          activeOpacity={0.88}
         >
-          <View style={stylesBoolElements.highlightRow}>
-            <Ionicons name={highlight.icon} size={24} color="rgba(0,0,0,0.75)" />
-            <Text style={stylesBoolElements.highlightCount}>{highlight.count}</Text>
-          </View>
-          <Text style={stylesBoolElements.highlightTitle}>{highlight.title}</Text>
+          <BlurView intensity={45} tint="light" style={stylesBoolElements.highlightGlass}>
+            <View style={stylesBoolElements.highlightRow}>
+              <View style={stylesBoolElements.iconWrap}>
+                <Ionicons name={highlight.icon} size={18} color="#0F172A" />
+              </View>
+              <Text numberOfLines={1} style={stylesBoolElements.highlightCount}>{highlight.count}</Text>
+            </View>
+            <Text style={stylesBoolElements.highlightTitle}>{highlight.title}</Text>
+          </BlurView>
         </TouchableOpacity>
       ))}
     </View>
@@ -38,34 +43,47 @@ export default function HostHighlightsGrid({ highlights }: HostHighlightsGridPro
 
 const stylesBoolElements = StyleSheet.create({
   highlightsContainer: {
-    padding: width * 0.05,
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    backgroundColor: "rgba(0,0,0,0.15)",
-    alignItems: "center",
   },
   highlightCard: {
     width: width * 0.43,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 10,
     marginTop: width * 0.035,
+    borderRadius: 24,
+    overflow: "hidden",
+  },
+  highlightGlass: {
+    borderRadius: 24,
+    padding: 14,
+    minHeight: 106,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.45)",
   },
   highlightRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.82)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   highlightCount: {
-    color: "#000",
+    color: "#0F172A",
     fontSize: 18,
+    fontWeight: "700",
     marginLeft: "auto",
   },
   highlightTitle: {
-    color: "#000",
-    fontSize: 16,
+    color: "#334155",
+    fontSize: 14,
     flexShrink: 1,
-    marginVertical: width * 0.01,
+    marginTop: 18,
   },
 });
