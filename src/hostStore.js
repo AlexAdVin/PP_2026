@@ -65,6 +65,7 @@ const createLocationFromListing = (listingData) => ({
   lat: listingData?.lat ?? null,
   lng: listingData?.lng ?? null,
   description: "New host listing draft",
+  isActive: true,
   Lots: {
     items: Array.from({ length: Number(listingData?.nrOfLots ?? 1) }, (_, index) =>
       createDefaultLot(index, listingData?.hrPrice),
@@ -139,16 +140,37 @@ export const useHostStore = create((set, get) => ({
   resetListingData: () => set({ listingData: createDefaultListingDraft() }),
   setCheckedPostIndex: (checkedPostIndex) => set({ checkedPostIndex }),
   setShowLocationsList: (showLocationsList) => set({ showLocationsList }),
+  setMockHostProfile: (payload) =>
+    set((state) => ({
+      hostProfile: {
+        hostSub: payload?.hostSub ?? state.hostProfile.hostSub,
+        hostName: payload?.hostName ?? state.hostProfile.hostName,
+      },
+      hostLotState: {
+        ...state.hostLotState,
+        hostSub: payload?.hostSub ?? state.hostLotState.hostSub,
+        hostName: payload?.hostName ?? state.hostLotState.hostName,
+      },
+    })),
 
   createHostLocationDraft: (listingData) => {
     const nextListingData = listingData ?? get().listingData;
     const newLocation = createLocationFromListing(nextListingData);
     const currentState = get().hostLotState;
+    const currentProfile = get().hostProfile;
+    const hostSub = currentProfile.hostSub ?? currentState.hostSub ?? `mock-host-${Date.now()}`;
+    const hostName = currentProfile.hostName || currentState.hostName || "Scandinavian Host";
     const nextLocations = [...(currentState.locations ?? []), newLocation];
 
     set({
+      hostProfile: {
+        hostSub,
+        hostName,
+      },
       hostLotState: {
         ...currentState,
+        hostSub,
+        hostName,
         locations: nextLocations,
       },
       checkedPostIndex: nextLocations.length - 1,
@@ -167,7 +189,40 @@ export const useHostStore = create((set, get) => ({
       listingData: location ? mapLocationToListing(location) : defaultListingData,
     });
   },
+
+  toggleLocationActive: (index) =>
+    set((state) => {
+      const nextLocations = [...(state.hostLotState.locations ?? [])];
+      const currentLocation = nextLocations[index];
+
+      if (!currentLocation) {
+        return state;
+      }
+
+      const nextIsActive = !(currentLocation?.isActive ?? true);
+      nextLocations[index] = {
+        ...currentLocation,
+        isActive: nextIsActive,
+        Lots: {
+          ...currentLocation.Lots,
+          items: (currentLocation?.Lots?.items ?? []).map((lot) => ({
+            ...lot,
+            avlBool: nextIsActive,
+          })),
+        },
+      };
+
+      return {
+        hostLotState: {
+          ...state.hostLotState,
+          locations: nextLocations,
+        },
+      };
+    }),
 }));
 
 export const selectCurrentHostLocation = (state) =>
   state.hostLotState.locations?.[state.checkedPostIndex] ?? null;
+
+export const selectHasHostAccess = (state) =>
+  Boolean(state.hostProfile.hostSub) && (state.hostLotState.locations?.length ?? 0) > 0;

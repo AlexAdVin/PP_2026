@@ -37,7 +37,11 @@ The hosting flow now lives under the global drawer at `/host`.
 
 The `Start sharing` action now opens a five-step host listing wizard for type, address, lot count, hourly price, and location name. Completing that flow creates a host location draft in the host Zustand store and returns the user to the hosting hub.
 
-The current host migration hydrates from `model/mockLocations.json`, matching the app's present mock-data setup. When backend host data is reintroduced, replace the `hydrateHostData(mockHostData)` calls in the host screens with the real host fetch layer.
+The hosting hub now uses a premium shared liquid-glass layout system from `components/layout/premium/`, reused by both the landing screen and the host home screen.
+
+The host home no longer auto-seeds mock data on entry. If there is no mocked host profile or no hosted locations, the user sees a premium onboarding screen instead of the full hosting hub. Completing the `Start sharing` wizard creates the first host draft and returns to the operational hub.
+
+When backend host data is reintroduced, hydrate `src/hostStore.js` from the real host fetch layer and keep this onboarding branch intact instead of restoring automatic mock hydration in the host screens.
 
 ## Get a fresh project
 

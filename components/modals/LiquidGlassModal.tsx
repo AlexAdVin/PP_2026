@@ -1,5 +1,5 @@
 import React from "react";
-import { Dimensions, StyleSheet, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, View } from "react-native";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
@@ -21,6 +21,7 @@ type Props = {
   height?: number;
   heightPercent?: number;
   onClose: () => void;
+  onBackdropPress?: () => void;
 };
 
 export default function LiquidGlassModal({
@@ -28,6 +29,7 @@ export default function LiquidGlassModal({
   height,
   heightPercent,
   onClose,
+  onBackdropPress,
 }: Props) {
   const resolvedHeight = height ?? SCREEN_HEIGHT * (heightPercent ?? 0.55);
   const translateY = useSharedValue(0);
@@ -65,7 +67,9 @@ export default function LiquidGlassModal({
 
   return (
     <>
-      <Animated.View style={[styles.backdrop, backdropStyle]} />
+      <Pressable style={StyleSheet.absoluteFill} onPress={onBackdropPress ?? onClose}>
+        <Animated.View style={[styles.backdrop, backdropStyle]} />
+      </Pressable>
 
       <GestureDetector gesture={gesture}>
         <Animated.View

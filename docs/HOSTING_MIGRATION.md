@@ -51,6 +51,17 @@ Host listing wizard UI lives in `components/hostHub/startListing/`:
 
 These components preserve the old HostHome visual treatment while removing Recoil and legacy overlay dependencies.
 
+The premium landing and host hub now also share reusable liquid-glass layout primitives in `components/layout/premium/`.
+
+- `PremiumScreen.tsx`
+- `PremiumHero.tsx`
+- `PremiumMetricStrip.tsx`
+- `GlassFeatureCard.tsx`
+- `QuickActionCard.tsx`
+- `GlassIconButton.tsx`
+- `SectionHeader.tsx`
+- `CountUpText.tsx`
+
 ## Start Listing Flow
 
 The `Start sharing` CTA now opens a five-step host listing wizard.
@@ -65,12 +76,18 @@ Steps:
 
 Completing the wizard creates a new draft host location inside `src/hostStore.js`, generates default lots from the chosen lot count, and returns the user to the host hub with the new location selected.
 
-## Current Data Source
+## Host Entry Behavior
 
-The hosting flow currently hydrates from `model/mockLocations.json` because the current ParkingPlanet app still runs on mock location data.
+The host landing screen now behaves like a real host gate instead of seeding mock data automatically.
 
-To connect the real backend later:
+- If the mocked host profile is missing or the host has no listed locations, `app/(drawer)/host/(tabs)/index.tsx` shows a premium onboarding screen.
+- Completing `Start sharing` creates the first host profile marker and host location draft in `src/hostStore.js`, then returns to the full hosting hub.
+- The location selector uses `components/modals/LiquidGlassModal.tsx` rather than the legacy modal sheet.
 
-1. Replace the `hydrateHostData(mockHostData)` calls in the host screens with the real host fetcher.
-2. Keep the fetched payload aligned with the `hostLotState` shape used in `src/hostStore.js`.
-3. Continue keeping host state separate from the driver location store.
+## Backend Reconnection Notes
+
+When a real backend is restored:
+
+1. Fetch host profile and locations before or inside the host route tree, then hydrate `src/hostStore.js` with that payload.
+2. Preserve the onboarding branch for `no host profile` and `no locations`; do not reintroduce automatic mock seeding in the host screens.
+3. Keep the fetched payload aligned with the `hostLotState` shape and continue keeping host state separate from the driver store.

@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import mockHostData from "@/model/mockLocations.json";
 import HostHighlightsGrid from "@/components/hostHub/HostHighlightsGrid";
 import { selectCurrentHostLocation, useHostStore } from "@/src/hostStore";
 
@@ -17,15 +16,7 @@ const buildAvailabilitySummary = (location: any) => {
 
 export default function HostCalendarScreen() {
   const router = useRouter();
-  const hydrateHostData = useHostStore((state) => state.hydrateHostData);
-  const hostLotState = useHostStore((state) => state.hostLotState);
   const currentLocation = useHostStore(selectCurrentHostLocation);
-
-  useEffect(() => {
-    if (!hostLotState.locations?.length) {
-      hydrateHostData(mockHostData);
-    }
-  }, [hostLotState.locations?.length, hydrateHostData]);
 
   const lots = useMemo(() => currentLocation?.Lots?.items ?? [], [currentLocation]);
   const highlights = useMemo(
@@ -59,6 +50,9 @@ export default function HostCalendarScreen() {
   return (
     <LinearGradient colors={["rgba(200,0,0,0.05)", "rgba(20,0,0,1)"]} style={StyleSheet.absoluteFill}>
       <ScrollView contentContainerStyle={stylesScreen.content} showsVerticalScrollIndicator={false}>
+        {!currentLocation ? (
+          <Text style={stylesScreen.subtitle}>Create your first location from the hosting hub to manage availability.</Text>
+        ) : null}
         <Text style={stylesScreen.title}>{currentLocation?.locName ?? "Hosting schedule"}</Text>
         <Text style={stylesScreen.subtitle}>{buildAvailabilitySummary(currentLocation)}</Text>
         <HostHighlightsGrid highlights={highlights} />

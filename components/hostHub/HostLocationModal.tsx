@@ -1,8 +1,7 @@
 import React from "react";
-import { Dimensions, ScrollView, Text, View } from "react-native";
-import Modal from "react-native-modal";
-import styles from "@/global/style/styles";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import ListingCard from "@/components/hostHub/ListingCard";
+import LiquidGlassModal from "@/components/modals/LiquidGlassModal";
 
 const { height, width } = Dimensions.get("screen");
 
@@ -19,47 +18,22 @@ export default function HostLocationModal({
   onClose,
   onSelectLocation,
 }: HostLocationModalProps) {
+  if (!visible) {
+    return null;
+  }
+
   return (
-    <Modal
-      isVisible={visible}
-      onBackdropPress={onClose}
-      onBackButtonPress={onClose}
-      style={{ justifyContent: "flex-end", margin: 0 }}
-      backdropOpacity={0.65}
-      useNativeDriver
-      hideModalContentWhileAnimating
-    >
-      <View
-        style={{
-          backgroundColor: "rgba(0,0,0,0.92)",
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          paddingTop: 12,
-          paddingBottom: 24,
-          minHeight: height * 0.42,
-          maxHeight: height * 0.72,
-        }}
-      >
-        <View style={{ marginBottom: 5, flexDirection: "row" }}>
-          <Text style={styles.titleModal}>Choose a place</Text>
-          <Text
-            onPress={onClose}
-            style={[
-              styles.txtInIcon,
-              {
-                fontSize: 25,
-                paddingVertical: height * 0.02,
-                color: "#fff",
-                marginRight: width * 0.03,
-              },
-            ]}
-          >
-            X
-          </Text>
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <LiquidGlassModal heightPercent={0.68} onClose={onClose} onBackdropPress={onClose}>
+        <View style={stylesModal.header}>
+          <Text style={stylesModal.eyebrow}>Hosting hub</Text>
+          <Text style={stylesModal.title}>Choose a place</Text>
+          <Text style={stylesModal.subtitle}>Switch the active location to review revenue, reservations, and live controls.</Text>
         </View>
 
         <ScrollView
-          style={{ height: height * 0.55, paddingHorizontal: width * 0.02 }}
+          style={{ height: height * 0.52, paddingHorizontal: width * 0.04 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
         >
           {locations.map((item, index) => (
@@ -73,7 +47,32 @@ export default function HostLocationModal({
             />
           ))}
         </ScrollView>
-      </View>
-    </Modal>
+      </LiquidGlassModal>
+    </View>
   );
 }
+
+const stylesModal = StyleSheet.create({
+  header: {
+    paddingHorizontal: width * 0.06,
+    paddingBottom: 18,
+  },
+  eyebrow: {
+    fontSize: 12,
+    letterSpacing: 0.4,
+    color: "rgba(15,23,42,0.55)",
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#0F172A",
+    letterSpacing: -0.8,
+  },
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: "#475569",
+    marginTop: 8,
+  },
+});

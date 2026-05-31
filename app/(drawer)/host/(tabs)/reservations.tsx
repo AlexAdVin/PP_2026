@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import mockHostData from "@/model/mockLocations.json";
 import TransactionDataCard from "@/components/hostHub/TransactionDataCard";
 import { selectCurrentHostLocation, useHostStore } from "@/src/hostStore";
 
@@ -90,22 +89,17 @@ function LotTransactions({ lot, lotIndex, filter }: { lot: any; lotIndex: number
 }
 
 export default function ReservationsScreen() {
-  const hydrateHostData = useHostStore((state) => state.hydrateHostData);
-  const hostLotState = useHostStore((state) => state.hostLotState);
   const currentLocation = useHostStore(selectCurrentHostLocation);
   const [filter, setFilter] = useState<(typeof filters)[number]>("Today");
-
-  useEffect(() => {
-    if (!hostLotState.locations?.length) {
-      hydrateHostData(mockHostData);
-    }
-  }, [hostLotState.locations?.length, hydrateHostData]);
 
   const lots = useMemo(() => currentLocation?.Lots?.items ?? [], [currentLocation]);
 
   return (
     <LinearGradient colors={["rgba(200,0,0,0.05)", "rgba(20,0,0,1)"]} style={StyleSheet.absoluteFill}>
       <ScrollView contentContainerStyle={{ paddingTop: 110, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+        {!currentLocation ? (
+          <Text style={stylesScreen.emptyLabel}>No hosted location selected yet.</Text>
+        ) : null}
         <View style={stylesScreen.tabContainer}>
           {filters.map((tab) => (
             <TouchableOpacity

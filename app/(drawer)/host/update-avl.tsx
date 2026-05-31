@@ -1,22 +1,13 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import BackBtn from "@/components/btns/BackBtn";
-import mockHostData from "@/model/mockLocations.json";
 import { selectCurrentHostLocation, useHostStore } from "@/src/hostStore";
 
 const { width } = Dimensions.get("screen");
 
 export default function UpdateAvailabilityScreen() {
-  const hydrateHostData = useHostStore((state) => state.hydrateHostData);
-  const hostLotState = useHostStore((state) => state.hostLotState);
   const currentLocation = useHostStore(selectCurrentHostLocation);
-
-  useEffect(() => {
-    if (!hostLotState.locations?.length) {
-      hydrateHostData(mockHostData);
-    }
-  }, [hostLotState.locations?.length, hydrateHostData]);
 
   const lots = currentLocation?.Lots?.items ?? [];
 
@@ -29,6 +20,12 @@ export default function UpdateAvailabilityScreen() {
       </View>
 
       <ScrollView contentContainerStyle={stylesScreen.content} showsVerticalScrollIndicator={false}>
+        {!currentLocation ? (
+          <View style={stylesScreen.card}>
+            <Text style={stylesScreen.locationName}>No hosted location yet</Text>
+            <Text style={stylesScreen.locationMeta}>Create a location from the hosting hub to edit availability.</Text>
+          </View>
+        ) : null}
         <View style={stylesScreen.card}>
           <Text style={stylesScreen.locationName}>{currentLocation?.locName ?? "Selected location"}</Text>
           <Text style={stylesScreen.locationMeta}>{currentLocation?.addrLoc ?? "No address"}</Text>
