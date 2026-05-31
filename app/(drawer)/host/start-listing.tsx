@@ -4,14 +4,12 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -23,9 +21,25 @@ import SelectPType from "@/components/hostHub/startListing/SelectPType";
 import AmbientBackground from "@/components/layout/AmbientBackground";
 import { useHostStore } from "@/src/hostStore";
 
+type ListingField = "type" | "addrLoc" | "nrOfLots" | "hrPrice" | "locName";
+
+type SlideContent = {
+  id: string;
+  q: string;
+  field: ListingField;
+  ph?: string;
+  icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+};
+
+type LocationPayload = {
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
 const imageBackground = require("@/assets/img/6232c93f3ccdf.jpg");
 
-const content = [
+const content: SlideContent[] = [
   {
     id: "1",
     q: "What type of\nparking do you offer?",
@@ -149,11 +163,7 @@ export default function StartListingScreen() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 74 : 24}
         >
-          <ScrollView
-            contentContainerStyle={wizardStyles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
+          <View style={wizardStyles.contentWrap}>
             <View style={wizardStyles.heroBlock}>
               <Text style={wizardStyles.eyebrow}>Host program</Text>
               <Text style={wizardStyles.title}>{slideContent.q}</Text>
@@ -162,20 +172,15 @@ export default function StartListingScreen() {
               </Text>
             </View>
 
-            <BlurView intensity={58} tint="light" style={wizardStyles.panel}>
-              <LinearGradient
-                colors={["rgba(255,255,255,0.62)", "rgba(255,255,255,0.28)"]}
-                style={wizardStyles.panelGlow}
-              />
-
-              {activeSlide === 0 ? <SelectPType type={listingData.type} onChange={(value) => updateListingField("type", value)} /> : null}
+            <View style={wizardStyles.slideContent}>
+              {activeSlide === 0 ? <SelectPType type={listingData.type} onChange={(value: string) => updateListingField("type", value)} /> : null}
 
               {activeSlide === 1 ? (
                 <ManageHostLocation
                   address={listingData.addrLoc}
                   latitude={listingData.lat}
                   longitude={listingData.lng}
-                  onChange={({ address, latitude, longitude }) =>
+                  onChange={({ address, latitude, longitude }: LocationPayload) =>
                     setListingData({
                       addrLoc: address,
                       lat: latitude,
@@ -188,16 +193,16 @@ export default function StartListingScreen() {
               {activeSlide === 2 ? (
                 <>
                   <Text style={wizardStyles.sectionTitle}>{slideContent.ph}</Text>
-                  <BlurView intensity={40} tint="light" style={wizardStyles.infoCard}>
+                  <View style={wizardStyles.infoCard}>
                     <MaterialCommunityIcons name="arrow-expand-horizontal" size={30} color="#0F172A" style={wizardStyles.infoIcon} />
                     <View style={wizardStyles.infoCopy}>
                       <Text style={wizardStyles.infoTitle}>Passenger car</Text>
                       <Text style={wizardStyles.infoSubtitle}>Length: 5 m, Width: 2.5 m, Height: 2.2 m</Text>
                     </View>
-                  </BlurView>
+                  </View>
                   <RenderIncrementer
                     value={Number(listingData.nrOfLots)}
-                    onChange={(nextValue) => updateListingField("nrOfLots", nextValue)}
+                    onChange={(nextValue: number) => updateListingField("nrOfLots", nextValue)}
                   />
                 </>
               ) : null}
@@ -207,7 +212,7 @@ export default function StartListingScreen() {
                   <Text style={wizardStyles.sectionTitle}>Set a confident hourly rate</Text>
                   <PriceSection
                     value={Number(listingData.hrPrice)}
-                    onChange={(nextValue) => updateListingField("hrPrice", nextValue)}
+                    onChange={(nextValue: number) => updateListingField("hrPrice", nextValue)}
                   />
                 </>
               ) : null}
@@ -216,7 +221,7 @@ export default function StartListingScreen() {
                 <View style={wizardStyles.fullWidth}>
                   <Text style={wizardStyles.sectionTitle}>Enter a name for the parking</Text>
 
-                  <BlurView intensity={40} tint="light" style={wizardStyles.inputRow}>
+                  <View style={wizardStyles.inputRow}>
                     <MaterialCommunityIcons name={slideContent.icon} size={24} color="#0F172A" style={wizardStyles.inputIcon} />
                     <TextInput
                       value={listingData.locName}
@@ -229,11 +234,11 @@ export default function StartListingScreen() {
                       autoCorrect={false}
                       returnKeyType="done"
                     />
-                  </BlurView>
+                  </View>
                 </View>
               ) : null}
-            </BlurView>
-          </ScrollView>
+            </View>
+          </View>
 
           <View style={wizardStyles.footerWrap}>
             <View style={wizardStyles.progressTrack}>
@@ -261,10 +266,10 @@ const wizardStyles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  scrollContent: {
+  contentWrap: {
+    flex: 1,
     paddingTop: 88,
     paddingHorizontal: 20,
-    paddingBottom: 190,
   },
   heroBlock: {
     marginBottom: 24,
@@ -289,16 +294,8 @@ const wizardStyles = StyleSheet.create({
     marginTop: 12,
     maxWidth: "92%",
   },
-  panel: {
-    borderRadius: 34,
-    padding: 20,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
-    backgroundColor: "rgba(255,255,255,0.45)",
-  },
-  panelGlow: {
-    ...StyleSheet.absoluteFillObject,
+  slideContent: {
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 16,
@@ -307,6 +304,7 @@ const wizardStyles = StyleSheet.create({
     marginBottom: 14,
   },
   infoCard: {
+    overflow: "hidden",
     borderRadius: 24,
     padding: 16,
     flexDirection: "row",
@@ -338,6 +336,7 @@ const wizardStyles = StyleSheet.create({
   inputRow: {
     width: "100%",
     minHeight: 68,
+    overflow: "hidden",
     borderRadius: 24,
     flexDirection: "row",
     alignItems: "center",
@@ -358,6 +357,7 @@ const wizardStyles = StyleSheet.create({
   footerWrap: {
     paddingHorizontal: 20,
     paddingBottom: Platform.OS === "ios" ? 28 : 20,
+    paddingTop: 12,
   },
   progressTrack: {
     height: 10,
