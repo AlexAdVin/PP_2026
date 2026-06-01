@@ -313,7 +313,7 @@ export const useHostStore = create((set, get) => ({
 export const selectCurrentHostLocation = (state) =>
   state.hostLotState.locations?.[state.checkedPostIndex] ?? null;
 
-export const selectSavedListingPreview = (state) => createSavedDraftPreview(state.savedListingDraft);
+export const mapSavedListingDraftToPreview = createSavedDraftPreview;
 
 export const selectHasHostAccess = (state) =>
   Boolean(state.hostProfile.hostSub) && (state.hostLotState.locations?.length ?? 0) > 0;

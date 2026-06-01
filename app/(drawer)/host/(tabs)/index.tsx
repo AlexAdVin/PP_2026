@@ -17,7 +17,7 @@ import PremiumScreen from "@/components/layout/premium/PremiumScreen";
 import QuickActionCard from "@/components/layout/premium/QuickActionCard";
 import SectionHeader from "@/components/layout/premium/SectionHeader";
 import mockHostData from "@/model/mockLocations.json";
-import { selectCurrentHostLocation, selectHasHostAccess, selectSavedListingPreview, useHostStore } from "@/src/hostStore";
+import { mapSavedListingDraftToPreview, selectCurrentHostLocation, selectHasHostAccess, useHostStore } from "@/src/hostStore";
 
 const imageBackground = require("@/assets/img/6232c93f3ccdf.jpg");
 
@@ -86,7 +86,7 @@ export default function HostHomeScreen() {
   const hydrateHostData = useHostStore((state) => state.hydrateHostData);
   const hostLotState = useHostStore((state) => state.hostLotState);
   const hasHostAccess = useHostStore(selectHasHostAccess);
-  const savedDraftPreview = useHostStore(selectSavedListingPreview);
+  const savedListingDraft = useHostStore((state) => state.savedListingDraft);
   const showLocationsList = useHostStore((state) => state.showLocationsList);
   const setShowLocationsList = useHostStore((state) => state.setShowLocationsList);
   const selectLocation = useHostStore((state) => state.selectLocation);
@@ -94,6 +94,7 @@ export default function HostHomeScreen() {
   const hydrateSavedListingDraft = useHostStore((state) => state.hydrateSavedListingDraft);
   const hasHydratedSavedListingDraft = useHostStore((state) => state.hasHydratedSavedListingDraft);
   const currentLocation = useHostStore(selectCurrentHostLocation);
+  const savedDraftPreview = useMemo(() => mapSavedListingDraftToPreview(savedListingDraft), [savedListingDraft]);
 
   useEffect(() => {
     if (hasHydratedSavedListingDraft && !hostLotState.locations?.length && !savedDraftPreview) {

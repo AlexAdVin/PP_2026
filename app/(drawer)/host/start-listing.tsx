@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
   Pressable,
@@ -83,6 +84,12 @@ export default function StartListingScreen() {
   const saveListingDraft = useHostStore((state) => state.saveListingDraft);
   const restoreSavedListingDraft = useHostStore((state) => state.restoreSavedListingDraft);
   const [activeSlide, setActiveSlide] = useState(0);
+
+  const navigateToHostHome = () => {
+    InteractionManager.runAfterInteractions(() => {
+      router.replace("/host");
+    });
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -167,7 +174,7 @@ export default function StartListingScreen() {
       return;
     }
 
-    router.replace("/host");
+    navigateToHostHome();
   };
 
   const goBack = () => {
@@ -176,12 +183,12 @@ export default function StartListingScreen() {
       return;
     }
 
-    router.back();
+    navigateToHostHome();
   };
 
   const handleSaveAndExit = async () => {
     await saveListingDraft({ step: activeSlide });
-    router.replace("/host");
+    navigateToHostHome();
   };
 
   return (
