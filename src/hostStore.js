@@ -24,6 +24,7 @@ const defaultListingData = {
   nrOfLots: 1,
   hrPrice: 0,
   locName: "",
+  isActive: true,
 };
 
 const createDefaultListingDraft = () => ({
@@ -34,6 +35,7 @@ const createDefaultListingDraft = () => ({
   nrOfLots: 3,
   hrPrice: 25,
   locName: "",
+  isActive: true,
 });
 
 const createDefaultAvailabilityDates = () => {
@@ -67,7 +69,7 @@ const createEditableLotDraft = (index, listingData) => ({
   lotNr: index + 1,
   img: null,
   rules: "Please read the host note before arrival.",
-  avlBool: true,
+  avlBool: listingData?.isActive ?? true,
   avlDates: createDefaultAvailabilityDates(),
   avlDaysNTime: createDefaultAvailabilityTimes(),
   chargerBool: false,
@@ -86,6 +88,8 @@ const createEditableLotDraft = (index, listingData) => ({
   },
   parkingFee: Number(listingData?.hrPrice ?? 0),
 });
+
+const getDraftListingIsActive = (lotDraft = []) => lotDraft.some((lot) => lot?.avlBool !== false);
 
 const cloneLotDraft = (lotDraft) => ({
   ...lotDraft,
@@ -177,7 +181,7 @@ const createPersistedLotFromDraft = (lotDraft, hourlyPrice) => {
     Transactions: {
       items: [...(lotDraft?.Transactions?.items ?? [])],
     },
-    parkingFee: Number(hourlyPrice ?? lotDraft?.parkingFee ?? 0),
+    parkingFee: Number(lotDraft?.parkingFee ?? hourlyPrice ?? 0),
   };
 };
 
@@ -191,7 +195,7 @@ const createLocationFromListing = (listingData, lotDrafts, persistedLocationId) 
   lat: listingData?.lat ?? null,
   lng: listingData?.lng ?? null,
   description: "New host listing draft",
-  isActive: true,
+  isActive: lotDrafts?.length ? getDraftListingIsActive(lotDrafts) : listingData?.isActive ?? true,
   Lots: {
     items:
       lotDrafts?.length
@@ -208,6 +212,7 @@ const mapLocationToListing = (location) => ({
   nrOfLots: location?.nrOfLots ?? 1,
   hrPrice: location?.hrPrice ?? 0,
   locName: location?.locName ?? "",
+  isActive: location?.isActive ?? true,
 });
 
 const normalizeSavedListingDraft = (savedDraft) => {
@@ -221,6 +226,7 @@ const normalizeSavedListingDraft = (savedDraft) => {
       ...savedDraft.listingData,
       nrOfLots: Number(savedDraft?.listingData?.nrOfLots ?? createDefaultListingDraft().nrOfLots),
       hrPrice: Number(savedDraft?.listingData?.hrPrice ?? createDefaultListingDraft().hrPrice),
+      isActive: savedDraft?.listingData?.isActive ?? true,
     },
     step: Math.min(Math.max(Number(savedDraft?.step ?? 0), 0), 4),
     savedAt: savedDraft?.savedAt ?? new Date().toISOString(),
@@ -310,7 +316,10 @@ export const useHostStore = create((set, get) => ({
     const nextLotDraft = Array.from({ length: nextLotCount }, (_, index) => createEditableLotDraft(index, nextListingData));
 
     set({
-      listingData: nextListingData,
+      listingData: {
+        ...nextListingData,
+        isActive: getDraftListingIsActive(nextLotDraft),
+      },
       listingLotDraft: nextLotDraft,
     });
 
@@ -332,6 +341,48 @@ export const useHostStore = create((set, get) => ({
       };
 
       return {
+        listingData:
+          key === "avlBool"
+            ? {
+                ...state.listingData,
+                isActive: getDraftListingIsActive(nextLotDraft),
+              }
+            : state.listingData,
+        listingLotDraft: nextLotDraft,
+      };
+    }),
+
+  setListingDraftActive: (isActive) =>
+    set((state) => ({
+      listingData: {
+        ...state.listingData,
+        isActive,
+      },
+      listingLotDraft: (state.listingLotDraft ?? []).map((lotDraft) => ({
+        ...lotDraft,
+        avlBool: isActive,
+      })),
+    })),
+
+  setListingLotActive: (lotIndex, isActive) =>
+    set((state) => {
+      const nextLotDraft = [...(state.listingLotDraft ?? [])];
+      const currentLot = nextLotDraft[lotIndex];
+
+      if (!currentLot) {
+        return state;
+      }
+
+      nextLotDraft[lotIndex] = {
+        ...currentLot,
+        avlBool: isActive,
+      };
+
+      return {
+        listingData: {
+          ...state.listingData,
+          isActive: getDraftListingIsActive(nextLotDraft),
+        },
         listingLotDraft: nextLotDraft,
       };
     }),
@@ -401,6 +452,10 @@ export const useHostStore = create((set, get) => ({
       }
 
       return {
+        listingData: {
+          ...state.listingData,
+          isActive: getDraftListingIsActive(nextLotDraft),
+        },
         listingLotDraft: nextLotDraft,
       };
     }),

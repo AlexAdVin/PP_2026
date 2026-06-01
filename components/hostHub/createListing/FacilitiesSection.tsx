@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Entypo, SimpleLineIcons } from "@expo/vector-icons";
+import PriceSection from "@/components/hostHub/startListing/PriceSection";
 import styles from "@/global/style/styles";
 import stylesBtns from "@/global/style/stylesBtns";
 
@@ -38,6 +39,12 @@ export default function FacilitiesSection({ checkedLot, lotState, handleChange, 
 
   return (
     <>
+      <View style={[styles.fieldContainer, styles.fieldPadding]}>
+        <Text style={[styles.txtFieldTitle, { marginBottom: width * 0.04 }]}>Price for this lot</Text>
+        <Text style={localStyles.supportingCopy}>Set a lot-specific hourly price when one bay should be more premium than the others.</Text>
+        <PriceSection value={Number(lot?.parkingFee ?? 0)} onChange={(nextValue: number) => handleChange(checkedLot, "parkingFee", nextValue)} />
+      </View>
+
       <View style={[styles.fieldContainer, styles.fieldPadding]}>
         <Text style={[styles.txtFieldTitle, { marginBottom: width * 0.05 }]}>Chargers</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 12 }}>
@@ -118,6 +125,12 @@ const localStyles = StyleSheet.create({
     width: width * 0.23,
     alignItems: "center",
     justifyContent: "center",
+  },
+  supportingCopy: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 14,
   },
   modalBackdrop: {
     flex: 1,

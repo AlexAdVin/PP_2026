@@ -34,7 +34,7 @@ export default function LotSettings({
       <CreateListingTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {activeTab === "Availability" ? (
-        <AvailabilitySection checkedLot={checkedLot} lotState={lotState} handleAvlChange={handleAvlChange} />
+        <AvailabilitySection checkedLot={checkedLot} lotState={lotState} handleChange={handleChange} handleAvlChange={handleAvlChange} />
       ) : null}
 
       {activeTab === "Facilities" ? (

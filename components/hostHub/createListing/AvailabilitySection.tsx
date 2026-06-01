@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Switch,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,6 +22,7 @@ const EMPTY_AVAILABILITY: any[] = [];
 type AvailabilitySectionProps = {
   checkedLot: number;
   lotState: any[];
+  handleChange: (lotIndex: number, key: string, value: any) => void;
   handleAvlChange: (
     lotIndex: number,
     entry: string,
@@ -44,7 +46,7 @@ const formatDateRange = (startDate: Date, endDate: Date) =>
 const formatTimeRange = (startDate: Date, endDate: Date) =>
   `${startDate.toLocaleString("en", { timeStyle: "short" })} - ${endDate.toLocaleString("en", { timeStyle: "short" })}`;
 
-export default function AvailabilitySection({ checkedLot, lotState, handleAvlChange }: AvailabilitySectionProps) {
+export default function AvailabilitySection({ checkedLot, lotState, handleChange, handleAvlChange }: AvailabilitySectionProps) {
   const lot = lotState?.[checkedLot];
   const [showCalendar, setShowCalendar] = useState(false);
   const [showTimerStart, setShowTimerStart] = useState(false);
@@ -68,6 +70,19 @@ export default function AvailabilitySection({ checkedLot, lotState, handleAvlCha
 
   return (
     <>
+      <View style={[styles.fieldContainer, styles.fieldPadding, localStyles.switchCard]}>
+        <View style={localStyles.switchCopy}>
+          <Text style={localStyles.switchTitle}>Lot {lot?.lotNr ?? checkedLot + 1} availability</Text>
+          <Text style={localStyles.switchSubtitle}>Pause only this lot while the rest of the listing stays live.</Text>
+        </View>
+        <Switch
+          value={lot?.avlBool !== false}
+          onValueChange={(value) => handleChange(checkedLot, "avlBool", value)}
+          trackColor={{ false: "rgba(148,163,184,0.35)", true: "rgba(255,255,255,0.55)" }}
+          thumbColor={lot?.avlBool !== false ? "#0F172A" : "#CBD5E1"}
+        />
+      </View>
+
       <View style={[styles.fieldContainer, styles.fieldPadding]}>
         <Text style={styles.txtFieldTitle}>Make this parking available to others</Text>
         <View style={stylesBtns.daySelectContainer}>
@@ -236,6 +251,27 @@ export default function AvailabilitySection({ checkedLot, lotState, handleAvlCha
 }
 
 const localStyles = StyleSheet.create({
+  switchCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: width * 0.06,
+  },
+  switchCopy: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  switchTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  switchSubtitle: {
+    color: "rgba(255,255,255,0.68)",
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 4,
+  },
   dayOptionInner: {
     width: width * 0.23,
     alignItems: "center",

@@ -6,7 +6,14 @@ import { LinearGradient } from "expo-linear-gradient";
 
 const { width, height } = Dimensions.get("screen");
 
-export default function FooterBackNext({ handlePrev, handleNext, activeSlide, isLastSlide }) {
+export default function FooterBackNext({
+  handlePrev,
+  handleNext,
+  activeSlide,
+  isLastSlide,
+  nextLabel = "Next",
+  finalLabel = "Create",
+}) {
   return (
     <BlurView
       tint="light"
@@ -68,7 +75,7 @@ export default function FooterBackNext({ handlePrev, handleNext, activeSlide, is
           }}
         >
           <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginRight: 8 }}>
-            {isLastSlide ? "Create" : "Next"}
+            {isLastSlide ? finalLabel : nextLabel}
           </Text>
           <MaterialCommunityIcons
             name={isLastSlide ? "check-bold" : "chevron-double-right"}
