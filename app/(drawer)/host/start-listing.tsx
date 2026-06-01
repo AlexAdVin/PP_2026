@@ -3,6 +3,7 @@ import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
+  Pressable,
   Platform,
   StyleSheet,
   Text,
@@ -12,13 +13,14 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import FooterBackNext from "@/components/hostHub/startListing/FooterBackNext";
 import ManageHostLocation from "@/components/hostHub/startListing/ManageHostLocation";
 import PriceSection from "@/components/hostHub/startListing/PriceSection";
 import RenderIncrementer from "@/components/hostHub/startListing/RenderIncrementer";
 import SelectPType from "@/components/hostHub/startListing/SelectPType";
 import AmbientBackground from "@/components/layout/AmbientBackground";
+import PremiumHero from "@/components/layout/premium/PremiumHero";
 import { useHostStore } from "@/src/hostStore";
 
 type ListingField = "type" | "addrLoc" | "nrOfLots" | "hrPrice" | "locName";
@@ -72,16 +74,41 @@ const content: SlideContent[] = [
 
 export default function StartListingScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ resume?: string }>();
   const listingData = useHostStore((state) => state.listingData);
   const setListingData = useHostStore((state) => state.setListingData);
   const updateListingField = useHostStore((state) => state.updateListingField);
   const resetListingData = useHostStore((state) => state.resetListingData);
   const createHostLocationDraft = useHostStore((state) => state.createHostLocationDraft);
+  const saveListingDraft = useHostStore((state) => state.saveListingDraft);
+  const restoreSavedListingDraft = useHostStore((state) => state.restoreSavedListingDraft);
   const [activeSlide, setActiveSlide] = useState(0);
 
   useEffect(() => {
-    resetListingData();
-  }, [resetListingData]);
+    let isMounted = true;
+
+    const setupListing = async () => {
+      if (params.resume === "1") {
+        const savedDraft = await restoreSavedListingDraft();
+
+        if (savedDraft && isMounted) {
+          setActiveSlide(savedDraft.step);
+          return;
+        }
+      }
+
+      if (isMounted) {
+        resetListingData();
+        setActiveSlide(0);
+      }
+    };
+
+    void setupListing();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [params.resume, resetListingData, restoreSavedListingDraft]);
 
   const slideContent = content[activeSlide];
   const progress = (activeSlide / (content.length - 1)) * 100;
@@ -90,7 +117,7 @@ export default function StartListingScreen() {
   const validations = useMemo(
     () => ({
       type: Boolean(listingData.type),
-      addrLoc: Boolean(listingData.addrLoc && listingData.lat && listingData.lng),
+      addrLoc: Boolean(listingData.addrLoc && listingData.lat != null && listingData.lng != null),
       nrOfLots: Number(listingData.nrOfLots) > 0,
       hrPrice: Number(listingData.hrPrice) > 0,
       locName: Boolean(listingData.locName?.trim()),
@@ -152,6 +179,11 @@ export default function StartListingScreen() {
     router.back();
   };
 
+  const handleSaveAndExit = async () => {
+    await saveListingDraft({ step: activeSlide });
+    router.replace("/host");
+  };
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={wizardStyles.screen}>
@@ -161,16 +193,24 @@ export default function StartListingScreen() {
         <KeyboardAvoidingView
           style={wizardStyles.flex}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 74 : 24}
+          //keyboardVerticalOffset={Platform.OS === "ios" ? 74 : 24}
         >
           <View style={wizardStyles.contentWrap}>
-            <View style={wizardStyles.heroBlock}>
-              <Text style={wizardStyles.eyebrow}>Host program</Text>
-              <Text style={wizardStyles.title}>{slideContent.q}</Text>
-              <Text style={wizardStyles.subtitle}>
-                Step {activeSlide + 1} of {content.length}. Build a polished listing with the same premium feel as the landing experience.
-              </Text>
-            </View>
+            <PremiumHero
+              imageSource={imageBackground}
+              eyebrow="Host program"
+              title={slideContent.q}
+              subtitle={`Step ${activeSlide + 1} of ${content.length}. Build a polished listing with the same premium feel as the landing experience.`}
+              heightPercent={0.28}
+              topBar={
+                <>
+                  <View style={wizardStyles.topBarSpacer} />
+                  <Pressable onPress={handleSaveAndExit} style={wizardStyles.saveExitButton}>
+                    <Text style={wizardStyles.saveExitLabel}>Save & Exit</Text>
+                  </Pressable>
+                </>
+              }
+            />
 
             <View style={wizardStyles.slideContent}>
               {activeSlide === 0 ? <SelectPType type={listingData.type} onChange={(value: string) => updateListingField("type", value)} /> : null}
@@ -240,7 +280,6 @@ export default function StartListingScreen() {
             </View>
           </View>
 
-          <View style={wizardStyles.footerWrap}>
             <View style={wizardStyles.progressTrack}>
               <LinearGradient
                 colors={["#0F172A", "#475569"]}
@@ -251,7 +290,7 @@ export default function StartListingScreen() {
             </View>
 
             <FooterBackNext handlePrev={goBack} handleNext={goNext} activeSlide={activeSlide} isLastSlide={isLastSlide} />
-          </View>
+
         </KeyboardAvoidingView>
       </View>
     </TouchableWithoutFeedback>
@@ -268,34 +307,30 @@ const wizardStyles = StyleSheet.create({
   },
   contentWrap: {
     flex: 1,
-    paddingTop: 88,
-    paddingHorizontal: 20,
+    paddingTop: 24,
   },
-  heroBlock: {
-    marginBottom: 24,
+  topBarSpacer: {
+    width: 1,
   },
-  eyebrow: {
-    color: "#64748B",
+  saveExitButton: {
+    minHeight: 38,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.42)",
+  },
+  saveExitLabel: {
+    color: "#FFFFFF",
     fontSize: 13,
-    letterSpacing: 0.4,
-    marginBottom: 10,
-  },
-  title: {
-    color: "#0F172A",
-    fontSize: 38,
-    lineHeight: 42,
     fontWeight: "700",
-    letterSpacing: -1.2,
-  },
-  subtitle: {
-    color: "#475569",
-    fontSize: 15,
-    lineHeight: 24,
-    marginTop: 12,
-    maxWidth: "92%",
+    letterSpacing: 0.2,
   },
   slideContent: {
     flex: 1,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
     fontSize: 16,
@@ -354,17 +389,10 @@ const wizardStyles = StyleSheet.create({
     color: "#0F172A",
     fontSize: 17,
   },
-  footerWrap: {
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === "ios" ? 28 : 20,
-    paddingTop: 12,
-  },
   progressTrack: {
     height: 10,
-    borderRadius: 999,
     overflow: "hidden",
     backgroundColor: "rgba(15,23,42,0.08)",
-    marginBottom: 14,
   },
   progressFill: {
     height: "100%",

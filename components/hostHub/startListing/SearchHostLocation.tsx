@@ -35,7 +35,6 @@ export default function SearchHostLocation({ address, onChangeAddress }) {
         placeholder={address || "Enter the address below"}
         fetchDetails
         minLength={3}
-        autoFocus
         enablePoweredByContainer={false}
         query={{
           key: apiKey,
@@ -75,6 +74,7 @@ export default function SearchHostLocation({ address, onChangeAddress }) {
           returnKeyType: "search",
           keyboardAppearance: "dark",
           autoCorrect: false,
+          autoFocus: true,
         }}
         onPress={(data, details = null) => {
           onChangeAddress({

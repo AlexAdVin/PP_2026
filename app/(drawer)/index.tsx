@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import AmbientBackground from "@/components/layout/AmbientBackground";
+import ContinueActionCard from "@/components/layout/premium/ContinueActionCard";
 
 const { height } = Dimensions.get("window");
 
@@ -188,26 +189,14 @@ export default function Landing() {
           </ScrollView>
         </View>
 
-        <TouchableOpacity
-          activeOpacity={0.9}
+          
+        <ContinueActionCard
+          eyebrow="Continue parking"
+          title="Vesterbro Courtyard"
+          subtitle="Reserved 2 minutes ago"
           onPress={() => router.push("/driver")}
-        >
-          <BlurView intensity={40} tint="light" style={styles.continueCard}>
-            <View>
-              <Text style={styles.continueEyebrow}>Continue parking</Text>
-
-              <Text style={styles.continueTitle}>Vesterbro Courtyard</Text>
-
-              <Text style={styles.continueSubtitle}>
-                Reserved 2 minutes ago
-              </Text>
-            </View>
-
-            <View style={styles.arrowCircle}>
-              <Ionicons name="arrow-forward" size={18} color="#0F172A" />
-            </View>
-          </BlurView>
-        </TouchableOpacity>
+          style={styles.continueCardWrap}
+        />
 
         <LinearGradient
           colors={["#DDF5E8", "#F4FBF7", "#FFFFFF"]}
@@ -481,41 +470,9 @@ const styles = StyleSheet.create({
     color: "#64748B",
     marginTop: 6,
   },
-  continueCard: {
+  continueCardWrap: {
     marginHorizontal: 20,
     marginTop: 10,
-    borderRadius: 30,
-    padding: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.8)",
-  },
-  continueEyebrow: {
-    fontSize: 12,
-    color: "#64748B",
-    marginBottom: 6,
-  },
-  continueTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#0F172A",
-    letterSpacing: -0.5,
-  },
-  continueSubtitle: {
-    marginTop: 6,
-    color: "#64748B",
-    fontSize: 13,
-  },
-  arrowCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    justifyContent: "center",
-    alignItems: "center",
   },
 
   impactCard: {

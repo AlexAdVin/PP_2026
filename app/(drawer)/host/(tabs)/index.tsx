@@ -11,12 +11,13 @@ import HostLocationModal from "@/components/hostHub/HostLocationModal";
 import HostTitle from "@/components/hostHub/HostTitle";
 import ListingCard from "@/components/hostHub/ListingCard";
 import CountUpText from "@/components/layout/premium/CountUpText";
+import ContinueActionCard from "@/components/layout/premium/ContinueActionCard";
 import PremiumHero from "@/components/layout/premium/PremiumHero";
 import PremiumScreen from "@/components/layout/premium/PremiumScreen";
 import QuickActionCard from "@/components/layout/premium/QuickActionCard";
 import SectionHeader from "@/components/layout/premium/SectionHeader";
 import mockHostData from "@/model/mockLocations.json";
-import { selectCurrentHostLocation, selectHasHostAccess, useHostStore } from "@/src/hostStore";
+import { selectCurrentHostLocation, selectHasHostAccess, selectSavedListingPreview, useHostStore } from "@/src/hostStore";
 
 const imageBackground = require("@/assets/img/6232c93f3ccdf.jpg");
 
@@ -42,6 +43,30 @@ const formatCurrency = (amount: number) =>
     maximumFractionDigits: 0,
   }).format(amount || 0);
 
+const formatElapsedTime = (savedAt?: string) => {
+  if (!savedAt) {
+    return "Started recently";
+  }
+
+  const elapsed = Date.now() - new Date(savedAt).getTime();
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (elapsed < hour) {
+    const minutes = Math.max(1, Math.round(elapsed / minute));
+    return `Started ${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  }
+
+  if (elapsed < day) {
+    const hours = Math.max(1, Math.round(elapsed / hour));
+    return `Started ${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  const days = Math.max(1, Math.round(elapsed / day));
+  return `Started ${days} day${days === 1 ? "" : "s"} ago`;
+};
+
 const getLocationTotals = (location: any) => {
   const lots = location?.Lots?.items ?? [];
   const transactions = lots.flatMap((lot: any) => lot?.Transactions?.items ?? []);
@@ -61,22 +86,34 @@ export default function HostHomeScreen() {
   const hydrateHostData = useHostStore((state) => state.hydrateHostData);
   const hostLotState = useHostStore((state) => state.hostLotState);
   const hasHostAccess = useHostStore(selectHasHostAccess);
+  const savedDraftPreview = useHostStore(selectSavedListingPreview);
   const showLocationsList = useHostStore((state) => state.showLocationsList);
   const setShowLocationsList = useHostStore((state) => state.setShowLocationsList);
   const selectLocation = useHostStore((state) => state.selectLocation);
   const toggleLocationActive = useHostStore((state) => state.toggleLocationActive);
+  const hydrateSavedListingDraft = useHostStore((state) => state.hydrateSavedListingDraft);
+  const hasHydratedSavedListingDraft = useHostStore((state) => state.hasHydratedSavedListingDraft);
   const currentLocation = useHostStore(selectCurrentHostLocation);
 
   useEffect(() => {
-    if (!hostLotState.locations?.length) {
+    if (hasHydratedSavedListingDraft && !hostLotState.locations?.length && !savedDraftPreview) {
       hydrateHostData(mockHostData);
     }
-  }, [hostLotState.locations?.length, hydrateHostData]);
+  }, [hasHydratedSavedListingDraft, hostLotState.locations?.length, hydrateHostData, savedDraftPreview]);
+
+  useEffect(() => {
+    void hydrateSavedListingDraft();
+  }, [hydrateSavedListingDraft]);
 
   const totals = useMemo(() => getLocationTotals(currentLocation), [currentLocation]);
   const selectedIndex = useHostStore((state) => state.checkedPostIndex);
   const isCurrentLocationActive = currentLocation?.isActive ?? true;
   const hostName = hostProfile.hostName || "welcome back";
+  const hasListedLocations = (hostLotState.locations?.length ?? 0) > 0;
+  const displayedLocations = useMemo(
+    () => (savedDraftPreview ? [...(hostLotState.locations ?? []), savedDraftPreview] : hostLotState.locations ?? []),
+    [hostLotState.locations, savedDraftPreview],
+  );
   const activeLocations = useMemo(
     () => (hostLotState.locations ?? []).filter((location: any) => location?.isActive ?? true).length,
     [hostLotState.locations],
@@ -133,6 +170,35 @@ export default function HostHomeScreen() {
     ],
     [isCurrentLocationActive, router, selectedIndex, toggleLocationActive],
   );
+
+  const openDraft = () => {
+    router.push("/host/start-listing?resume=1");
+  };
+
+  if (!hasListedLocations && savedDraftPreview) {
+    return (
+      <View style={stylesScreen.screen}>
+        <PremiumScreen imageBackground={imageBackground}>
+          <PremiumHero
+            imageSource={imageBackground}
+            eyebrow="Hosting hub"
+            title="Continue listing"
+            subtitle="Your draft is saved securely. Resume the exact step you left and finish publishing when ready."
+            heightPercent={0.34}
+          />
+
+          <View style={stylesScreen.metricStripWrap}>
+            <ContinueActionCard
+              eyebrow="Continue listing"
+              title={savedDraftPreview.locName || "Unlisted parking"}
+              subtitle={formatElapsedTime(savedDraftPreview.savedAt)}
+              onPress={openDraft}
+            />
+          </View>
+        </PremiumScreen>
+      </View>
+    );
+  }
 
   if (!hasHostAccess) {
     return (
@@ -203,7 +269,7 @@ export default function HostHomeScreen() {
 
         <View style={stylesScreen.locationCardWrap}>
           <ListingCard
-            length={hostLotState.locations.length}
+            length={displayedLocations.length}
             item={currentLocation}
             onOpenLocations={() => setShowLocationsList(true)}
           />
@@ -300,9 +366,17 @@ export default function HostHomeScreen() {
 
       <HostLocationModal
         visible={showLocationsList}
-        locations={hostLotState.locations}
+        locations={displayedLocations}
         onClose={() => setShowLocationsList(false)}
-        onSelectLocation={selectLocation}
+        onSelectLocation={(index) => {
+          if (savedDraftPreview && index >= (hostLotState.locations?.length ?? 0)) {
+            setShowLocationsList(false);
+            openDraft();
+            return;
+          }
+
+          selectLocation(index);
+        }}
       />
     </View>
   );

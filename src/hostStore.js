@@ -1,4 +1,7 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
+
+const HOST_LISTING_DRAFT_STORAGE_KEY = "pp-2026-host-listing-draft";
 
 const defaultListingData = {
   type: "",
@@ -83,6 +86,46 @@ const mapLocationToListing = (location) => ({
   locName: location?.locName ?? "",
 });
 
+const normalizeSavedListingDraft = (savedDraft) => {
+  if (!savedDraft?.listingData) {
+    return null;
+  }
+
+  return {
+    listingData: {
+      ...createDefaultListingDraft(),
+      ...savedDraft.listingData,
+      nrOfLots: Number(savedDraft?.listingData?.nrOfLots ?? createDefaultListingDraft().nrOfLots),
+      hrPrice: Number(savedDraft?.listingData?.hrPrice ?? createDefaultListingDraft().hrPrice),
+    },
+    step: Math.min(Math.max(Number(savedDraft?.step ?? 0), 0), 4),
+    savedAt: savedDraft?.savedAt ?? new Date().toISOString(),
+  };
+};
+
+const createSavedDraftPreview = (savedDraft) => {
+  const normalizedDraft = normalizeSavedListingDraft(savedDraft);
+
+  if (!normalizedDraft) {
+    return null;
+  }
+
+  return {
+    id: `saved-draft-${normalizedDraft.savedAt}`,
+    type: normalizedDraft.listingData.type || "Open space",
+    addrLoc: normalizedDraft.listingData.addrLoc?.trim() || "Undefined address",
+    nrOfLots: Number(normalizedDraft.listingData.nrOfLots ?? 1),
+    hrPrice: Number(normalizedDraft.listingData.hrPrice ?? 0),
+    locName: normalizedDraft.listingData.locName?.trim() || "Unlisted parking",
+    lat: normalizedDraft.listingData.lat ?? null,
+    lng: normalizedDraft.listingData.lng ?? null,
+    isDraft: true,
+    isActive: false,
+    savedAt: normalizedDraft.savedAt,
+    draftStep: normalizedDraft.step,
+  };
+};
+
 export const useHostStore = create((set, get) => ({
   hostProfile: {
     hostSub: null,
@@ -94,6 +137,8 @@ export const useHostStore = create((set, get) => ({
     locations: [],
   },
   listingData: createDefaultListingDraft(),
+  savedListingDraft: null,
+  hasHydratedSavedListingDraft: false,
   checkedPostIndex: 0,
   showLocationsList: false,
 
@@ -138,6 +183,47 @@ export const useHostStore = create((set, get) => ({
     })),
 
   resetListingData: () => set({ listingData: createDefaultListingDraft() }),
+  saveListingDraft: async ({ step }) => {
+    const state = get();
+    const savedListingDraft = normalizeSavedListingDraft({
+      listingData: state.listingData,
+      step,
+      savedAt: new Date().toISOString(),
+    });
+
+    await AsyncStorage.setItem(HOST_LISTING_DRAFT_STORAGE_KEY, JSON.stringify(savedListingDraft));
+
+    set({ savedListingDraft, hasHydratedSavedListingDraft: true });
+
+    return savedListingDraft;
+  },
+  hydrateSavedListingDraft: async () => {
+    const storedDraft = await AsyncStorage.getItem(HOST_LISTING_DRAFT_STORAGE_KEY);
+
+    if (!storedDraft) {
+      set({ savedListingDraft: null, hasHydratedSavedListingDraft: true });
+      return null;
+    }
+
+    const savedListingDraft = normalizeSavedListingDraft(JSON.parse(storedDraft));
+    set({ savedListingDraft, hasHydratedSavedListingDraft: true });
+    return savedListingDraft;
+  },
+  restoreSavedListingDraft: async () => {
+    const savedListingDraft = get().savedListingDraft ?? (await get().hydrateSavedListingDraft());
+
+    if (!savedListingDraft) {
+      set({ listingData: createDefaultListingDraft() });
+      return null;
+    }
+
+    set({ listingData: savedListingDraft.listingData });
+    return savedListingDraft;
+  },
+  clearSavedListingDraft: async () => {
+    await AsyncStorage.removeItem(HOST_LISTING_DRAFT_STORAGE_KEY);
+    set({ savedListingDraft: null, hasHydratedSavedListingDraft: true });
+  },
   setCheckedPostIndex: (checkedPostIndex) => set({ checkedPostIndex }),
   setShowLocationsList: (showLocationsList) => set({ showLocationsList }),
   setMockHostProfile: (payload) =>
@@ -175,8 +261,11 @@ export const useHostStore = create((set, get) => ({
       },
       checkedPostIndex: nextLocations.length - 1,
       listingData: mapLocationToListing(newLocation),
+      savedListingDraft: null,
       showLocationsList: false,
     });
+
+    void AsyncStorage.removeItem(HOST_LISTING_DRAFT_STORAGE_KEY);
 
     return newLocation;
   },
@@ -223,6 +312,8 @@ export const useHostStore = create((set, get) => ({
 
 export const selectCurrentHostLocation = (state) =>
   state.hostLotState.locations?.[state.checkedPostIndex] ?? null;
+
+export const selectSavedListingPreview = (state) => createSavedDraftPreview(state.savedListingDraft);
 
 export const selectHasHostAccess = (state) =>
   Boolean(state.hostProfile.hostSub) && (state.hostLotState.locations?.length ?? 0) > 0;
