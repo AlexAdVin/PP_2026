@@ -39,9 +39,14 @@ The `Start sharing` action now opens a five-step host listing wizard for type, a
 
 The hosting hub now uses a premium shared liquid-glass layout system from `components/layout/premium/`, reused by both the landing screen and the host home screen.
 
-The host home no longer auto-seeds mock data on entry. If there is no mocked host profile or no hosted locations, the user sees a premium onboarding screen instead of the full hosting hub. Completing the `Start sharing` wizard creates the first host draft and returns to the operational hub.
+Host locations and resumable listing drafts now come from separate sources so the app matches the intended production split.
 
-When backend host data is reintroduced, hydrate `src/hostStore.js` from the real host fetch layer and keep this onboarding branch intact instead of restoring automatic mock hydration in the host screens.
+- Hosted locations are loaded through `src/adapters/hostDatabaseAdapter.ts`, which currently reads `model/mockLocations.json` to simulate a database response.
+- `Save & Exit` persists only the in-progress listing draft in AsyncStorage through `src/hostStore.js`.
+- The hosting hub always hydrates the simulated database locations, then overlays any saved draft in the UI as a resumable unlisted item.
+- If there are database-backed locations, the saved draft appears alongside them in the location switcher. If the draft is the only host artifact, the hub shows a dedicated `Continue listing` CTA.
+
+When the backend is ready, replace the adapter implementation in `src/adapters/hostDatabaseAdapter.ts` with the real API or database client and keep AsyncStorage reserved for incomplete local drafts.
 
 ## Get a fresh project
 

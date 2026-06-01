@@ -77,6 +77,17 @@ The application uses a comprehensive GraphQL data model with the following entit
 - `connType`: Connector type supported
 - **Relations**: Belongs to Driver
 
+## Host Data Sourcing Split
+
+The host flow now separates database-backed locations from locally persisted listing drafts:
+
+- `model/mockLocations.json` represents the simulated database payload for host locations.
+- `src/adapters/hostDatabaseAdapter.ts` is the adapter boundary that reads that JSON and returns a cloned payload shaped like a backend fetch.
+- `src/hostStore.js` stores only the resumable `Save & Exit` draft in AsyncStorage.
+- `app/(drawer)/host/(tabs)/index.tsx` hydrates locations from the adapter and then layers any saved draft into the UI without merging the draft into the simulated database dataset.
+
+This mirrors production behavior where listed locations come from a server-side source while incomplete listing progress remains local until the host explicitly finishes publishing.
+
 ## Data Structure for Mock Data
 
 ### Mock Locations JSON Structure

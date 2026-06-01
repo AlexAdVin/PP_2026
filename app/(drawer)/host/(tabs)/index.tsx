@@ -16,7 +16,7 @@ import PremiumHero from "@/components/layout/premium/PremiumHero";
 import PremiumScreen from "@/components/layout/premium/PremiumScreen";
 import QuickActionCard from "@/components/layout/premium/QuickActionCard";
 import SectionHeader from "@/components/layout/premium/SectionHeader";
-import mockHostData from "@/model/mockLocations.json";
+import { hostDatabaseAdapter } from "@/src/adapters/hostDatabaseAdapter";
 import { mapSavedListingDraftToPreview, selectCurrentHostLocation, selectHasHostAccess, useHostStore } from "@/src/hostStore";
 
 const imageBackground = require("@/assets/img/6232c93f3ccdf.jpg");
@@ -97,10 +97,26 @@ export default function HostHomeScreen() {
   const savedDraftPreview = useMemo(() => mapSavedListingDraftToPreview(savedListingDraft), [savedListingDraft]);
 
   useEffect(() => {
-    if (hasHydratedSavedListingDraft && !hostLotState.locations?.length && !savedDraftPreview) {
-      hydrateHostData(mockHostData);
-    }
-  }, [hasHydratedSavedListingDraft, hostLotState.locations?.length, hydrateHostData, savedDraftPreview]);
+    let isMounted = true;
+
+    const hydrateMockDatabase = async () => {
+      if (hostLotState.locations?.length) {
+        return;
+      }
+
+      const payload = await hostDatabaseAdapter.fetchHostData();
+
+      if (isMounted) {
+        hydrateHostData(payload);
+      }
+    };
+
+    void hydrateMockDatabase();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [hostLotState.locations?.length, hydrateHostData]);
 
   useEffect(() => {
     void hydrateSavedListingDraft();
@@ -176,7 +192,7 @@ export default function HostHomeScreen() {
     router.push("/host/start-listing?resume=1");
   };
 
-  if (!hasListedLocations && savedDraftPreview) {
+  if (!hasListedLocations && hasHydratedSavedListingDraft && savedDraftPreview) {
     return (
       <View style={stylesScreen.screen}>
         <PremiumScreen imageBackground={imageBackground}>
