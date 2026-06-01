@@ -88,6 +88,17 @@ The host flow now separates database-backed locations from locally persisted lis
 
 This mirrors production behavior where listed locations come from a server-side source while incomplete listing progress remains local until the host explicitly finishes publishing.
 
+## Listing Creation Flow
+
+Host listing creation is now a two-stage process:
+
+- `app/(drawer)/host/start-listing.tsx` collects listing metadata such as location type, address, lot count, hourly price, and listing name.
+- `app/(drawer)/host/create-listing.tsx` edits the per-lot draft created from that metadata. This migrated stage replaces the old Recoil-based `CreateListingNew` flow with Zustand-backed `listingLotDraft` state.
+- Each lot draft contains availability dates, weekly availability times, charger configuration, rules, and transaction placeholders.
+- Final save calls `src/adapters/hostListingPersistenceAdapter.ts`, which currently returns a placeholder persistence result. The store then materializes a fully shaped location record in local host state using that response.
+
+This keeps Expo 54-compatible UI flow and state management in place while leaving the actual backend write contract behind a single adapter boundary.
+
 ## Data Structure for Mock Data
 
 ### Mock Locations JSON Structure

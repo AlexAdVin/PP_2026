@@ -35,7 +35,11 @@ The hosting flow now lives under the global drawer at `/host`.
 - Navigation behavior: the drawer entry replaces the current route with `/host`, so stale driver stack history is not preserved beneath the host flow.
 - State: host state is managed in `src/hostStore.js` with Zustand and kept separate from the driver location store in `src/store.js`.
 
-The `Start sharing` action now opens a five-step host listing wizard for type, address, lot count, hourly price, and location name. Completing that flow creates a host location draft in the host Zustand store and returns the user to the hosting hub.
+The `Start sharing` action now opens a five-step host listing wizard for type, address, lot count, hourly price, and location name. Completing those metadata steps continues into the migrated lot-settings stage at `/host/create-listing`, where each lot is configured before the final listing is committed into the host Zustand store.
+
+After the five-step metadata wizard is complete, the flow now continues into `/host/create-listing`, which migrates the old `CreateListingNew` lot-settings stage into the Expo Router app. This second stage uses Zustand-backed `listingLotDraft` state for per-lot availability and charger settings, replacing the old Recoil `useLotState` flow.
+
+Database writes are intentionally routed through the placeholder adapter in `src/adapters/hostListingPersistenceAdapter.ts`. The adapter currently simulates a successful persistence call and returns a synthetic location id so the UI and store can behave like production without binding the new host flow to unfinished backend writes.
 
 The hosting hub now uses a premium shared liquid-glass layout system from `components/layout/premium/`, reused by both the landing screen and the host home screen.
 
@@ -43,6 +47,7 @@ Host locations and resumable listing drafts now come from separate sources so th
 
 - Hosted locations are loaded through `src/adapters/hostDatabaseAdapter.ts`, which currently reads `model/mockLocations.json` to simulate a database response.
 - `Save & Exit` persists only the in-progress listing draft in AsyncStorage through `src/hostStore.js`.
+- Final listing submission from `/host/create-listing` is routed through `src/adapters/hostListingPersistenceAdapter.ts`, which currently acts as a placeholder write boundary until the real backend contract is wired in.
 - The hosting hub always hydrates the simulated database locations, then overlays any saved draft in the UI as a resumable unlisted item.
 - If there are database-backed locations, the saved draft appears alongside them in the location switcher. If the draft is the only host artifact, the hub shows a dedicated `Continue listing` CTA.
 

@@ -1,7 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
+import { hostListingPersistenceAdapter } from "@/src/adapters/hostListingPersistenceAdapter";
 
 const HOST_LISTING_DRAFT_STORAGE_KEY = "pp-2026-host-listing-draft";
+
+const addHoursToDate = (date, hours) => {
+  const nextDate = new Date(date);
+  nextDate.setHours(nextDate.getHours() + hours);
+  return nextDate;
+};
+
+const addMonthsToDate = (date, months) => {
+  const nextDate = new Date(date);
+  nextDate.setMonth(nextDate.getMonth() + months);
+  return nextDate;
+};
 
 const defaultListingData = {
   type: "",
@@ -21,6 +34,75 @@ const createDefaultListingDraft = () => ({
   nrOfLots: 3,
   hrPrice: 25,
   locName: "",
+});
+
+const createDefaultAvailabilityDates = () => {
+  const startDate = new Date();
+
+  return [
+    {
+      boolStart: true,
+      startAvl: startDate,
+    },
+    {
+      boolEnd: true,
+      endAvl: addMonthsToDate(startDate, 12),
+    },
+  ];
+};
+
+const createDefaultAvailabilityTimes = () =>
+  [
+    { day: "Monday", bool: true, sT: new Date(new Date().setHours(8, 0, 0, 0)), eT: new Date(new Date().setHours(18, 0, 0, 0)) },
+    { day: "Tuesday", bool: true, sT: new Date(new Date().setHours(8, 0, 0, 0)), eT: new Date(new Date().setHours(18, 0, 0, 0)) },
+    { day: "Wednesday", bool: true, sT: new Date(new Date().setHours(8, 0, 0, 0)), eT: new Date(new Date().setHours(18, 0, 0, 0)) },
+    { day: "Thursday", bool: true, sT: new Date(new Date().setHours(8, 0, 0, 0)), eT: new Date(new Date().setHours(18, 0, 0, 0)) },
+    { day: "Friday", bool: true, sT: new Date(new Date().setHours(8, 0, 0, 0)), eT: new Date(new Date().setHours(17, 0, 0, 0)) },
+    { day: "Saturday", bool: true, sT: new Date(new Date().setHours(0, 0, 0, 0)), eT: addHoursToDate(new Date(new Date().setHours(0, 0, 0, 0)), 24) },
+    { day: "Sunday", bool: true, sT: new Date(new Date().setHours(0, 0, 0, 0)), eT: addHoursToDate(new Date(new Date().setHours(0, 0, 0, 0)), 24) },
+  ];
+
+const createEditableLotDraft = (index, listingData) => ({
+  id: `lot-draft-${Date.now()}-${index + 1}`,
+  lotNr: index + 1,
+  img: null,
+  rules: "Please read the host note before arrival.",
+  avlBool: true,
+  avlDates: createDefaultAvailabilityDates(),
+  avlDaysNTime: createDefaultAvailabilityTimes(),
+  chargerBool: false,
+  charger: [
+    {
+      chargerNr: index + 1,
+      note: "Turn on the charger by using the host instructions.",
+      plugType: null,
+      power: null,
+      usageFee: 7,
+      pricekWh: 4.25,
+    },
+  ],
+  Transactions: {
+    items: [],
+  },
+  parkingFee: Number(listingData?.hrPrice ?? 0),
+});
+
+const cloneLotDraft = (lotDraft) => ({
+  ...lotDraft,
+  avlDates: (lotDraft?.avlDates ?? []).map((entry) => ({
+    ...entry,
+    startAvl: entry?.startAvl ? new Date(entry.startAvl) : entry?.startAvl,
+    endAvl: entry?.endAvl ? new Date(entry.endAvl) : entry?.endAvl,
+  })),
+  avlDaysNTime: (lotDraft?.avlDaysNTime ?? []).map((entry) => ({
+    ...entry,
+    sT: entry?.sT ? new Date(entry.sT) : entry?.sT,
+    eT: entry?.eT ? new Date(entry.eT) : entry?.eT,
+  })),
+  charger: (lotDraft?.charger ?? []).map((entry) => ({ ...entry })),
+  Transactions: {
+    items: [...(lotDraft?.Transactions?.items ?? [])],
+  },
 });
 
 const createDefaultLot = (index, hourlyPrice) => ({
@@ -58,8 +140,49 @@ const createDefaultLot = (index, hourlyPrice) => ({
   parkingFee: Number(hourlyPrice ?? 0),
 });
 
-const createLocationFromListing = (listingData) => ({
-  id: `host-location-${Date.now()}`,
+const createPersistedLotFromDraft = (lotDraft, hourlyPrice) => {
+  const startDate = lotDraft?.avlDates?.[0]?.startAvl ? new Date(lotDraft.avlDates[0].startAvl) : new Date();
+  const endDate = lotDraft?.avlDates?.[1]?.endAvl ? new Date(lotDraft.avlDates[1].endAvl) : addMonthsToDate(startDate, 12);
+  const charger = lotDraft?.charger?.[0] ?? null;
+  const hasCharger = Boolean(lotDraft?.chargerBool && charger?.plugType);
+
+  return {
+    id: lotDraft?.id ?? `lot-${Date.now()}-${lotDraft?.lotNr ?? 1}`,
+    lotNr: lotDraft?.lotNr ?? 1,
+    img: lotDraft?.img ?? null,
+    rules: lotDraft?.rules ?? "Please read the host note before arrival.",
+    avlBool: lotDraft?.avlBool ?? true,
+    startAvl: startDate.toISOString().slice(0, 10),
+    endAvl: endDate.toISOString().slice(0, 10),
+    chargerBool: hasCharger,
+    AvlDaysNTimes: {
+      items: (lotDraft?.avlDaysNTime ?? []).map((entry, index) => ({
+        id: `avl-${Date.now()}-${lotDraft?.lotNr ?? 1}-${index}`,
+        day: entry.day,
+        bool: entry.bool,
+        sT: new Date(entry.sT).toISOString(),
+        eT: new Date(entry.eT).toISOString(),
+      })),
+    },
+    Charger: hasCharger
+      ? {
+          id: `charger-${Date.now()}-${lotDraft?.lotNr ?? 1}`,
+          chargerNr: Number(charger.chargerNr ?? lotDraft?.lotNr ?? 1),
+          plugType: charger.plugType,
+          power: Number(charger.power ?? 0),
+          usageFee: Number(charger.usageFee ?? 0),
+          pricekWh: Number(charger.pricekWh ?? 0),
+        }
+      : null,
+    Transactions: {
+      items: [...(lotDraft?.Transactions?.items ?? [])],
+    },
+    parkingFee: Number(hourlyPrice ?? lotDraft?.parkingFee ?? 0),
+  };
+};
+
+const createLocationFromListing = (listingData, lotDrafts, persistedLocationId) => ({
+  id: persistedLocationId ?? `host-location-${Date.now()}`,
   type: listingData?.type ?? "Open space",
   addrLoc: listingData?.addrLoc ?? "",
   nrOfLots: Number(listingData?.nrOfLots ?? 1),
@@ -70,9 +193,10 @@ const createLocationFromListing = (listingData) => ({
   description: "New host listing draft",
   isActive: true,
   Lots: {
-    items: Array.from({ length: Number(listingData?.nrOfLots ?? 1) }, (_, index) =>
-      createDefaultLot(index, listingData?.hrPrice),
-    ),
+    items:
+      lotDrafts?.length
+        ? lotDrafts.map((lotDraft) => createPersistedLotFromDraft(lotDraft, listingData?.hrPrice))
+        : Array.from({ length: Number(listingData?.nrOfLots ?? 1) }, (_, index) => createDefaultLot(index, listingData?.hrPrice)),
   },
 });
 
@@ -137,6 +261,7 @@ export const useHostStore = create((set, get) => ({
     locations: [],
   },
   listingData: createDefaultListingDraft(),
+  listingLotDraft: [],
   savedListingDraft: null,
   hasHydratedSavedListingDraft: false,
   checkedPostIndex: 0,
@@ -173,6 +298,135 @@ export const useHostStore = create((set, get) => ({
         ...listingData,
       },
     })),
+
+  initializeListingLotDraft: (listingDataInput) => {
+    const state = get();
+    const nextListingData = {
+      ...state.listingData,
+      ...(listingDataInput ?? {}),
+    };
+
+    const nextLotCount = Math.max(1, Number(nextListingData?.nrOfLots ?? 1));
+    const nextLotDraft = Array.from({ length: nextLotCount }, (_, index) => createEditableLotDraft(index, nextListingData));
+
+    set({
+      listingData: nextListingData,
+      listingLotDraft: nextLotDraft,
+    });
+
+    return nextLotDraft;
+  },
+
+  updateListingLotField: (lotIndex, key, value) =>
+    set((state) => {
+      const nextLotDraft = [...(state.listingLotDraft ?? [])];
+      const currentLot = nextLotDraft[lotIndex];
+
+      if (!currentLot) {
+        return state;
+      }
+
+      nextLotDraft[lotIndex] = {
+        ...currentLot,
+        [key]: value,
+      };
+
+      return {
+        listingLotDraft: nextLotDraft,
+      };
+    }),
+
+  updateListingLotAvailability: (lotIndex, entry, avlIndex, key, value, key2, value2) =>
+    set((state) => {
+      const nextLotDraft = [...(state.listingLotDraft ?? [])];
+      const currentLot = nextLotDraft[lotIndex];
+
+      if (!currentLot) {
+        return state;
+      }
+
+      if (entry === "avlDates") {
+        const nextDates = [...(currentLot.avlDates ?? [])];
+        nextDates[avlIndex] = {
+          ...nextDates[avlIndex],
+          [key]: value,
+          ...(key2 ? { [key2]: value2 } : {}),
+        };
+
+        nextLotDraft[lotIndex] = {
+          ...currentLot,
+          avlDates: nextDates,
+        };
+      } else if (entry === "avlDaysNTime") {
+        const nextAvailability = [...(currentLot.avlDaysNTime ?? [])];
+
+        if (key === "bool" && avlIndex === "Weekdays") {
+          for (let index = 0; index < 5; index += 1) {
+            nextAvailability[index] = {
+              ...nextAvailability[index],
+              bool: value,
+            };
+          }
+        } else if (key === "bool" && avlIndex === "Weekend") {
+          for (let index = 5; index < nextAvailability.length; index += 1) {
+            nextAvailability[index] = {
+              ...nextAvailability[index],
+              bool: value,
+            };
+          }
+        } else {
+          nextAvailability[avlIndex] = {
+            ...nextAvailability[avlIndex],
+            [key]: value,
+            ...(key2 ? { [key2]: value2 } : {}),
+          };
+        }
+
+        nextLotDraft[lotIndex] = {
+          ...currentLot,
+          avlDaysNTime: nextAvailability,
+        };
+      } else {
+        const nextEntry = [...(currentLot[entry] ?? [])];
+        nextEntry[avlIndex] = {
+          ...nextEntry[avlIndex],
+          [key]: value,
+          ...(key2 ? { [key2]: value2 } : {}),
+        };
+
+        nextLotDraft[lotIndex] = {
+          ...currentLot,
+          [entry]: nextEntry,
+        };
+      }
+
+      return {
+        listingLotDraft: nextLotDraft,
+      };
+    }),
+
+  applyListingLotToAll: (lotIndex) =>
+    set((state) => {
+      const sourceLot = state.listingLotDraft?.[lotIndex];
+
+      if (!sourceLot) {
+        return state;
+      }
+
+      return {
+        listingLotDraft: (state.listingLotDraft ?? []).map((lotDraft, index) =>
+          index === lotIndex
+            ? lotDraft
+            : {
+                ...cloneLotDraft(sourceLot),
+                id: lotDraft.id,
+                lotNr: lotDraft.lotNr,
+              },
+        ),
+      };
+    }),
+
+  resetListingLotDraft: () => set({ listingLotDraft: [] }),
 
   updateListingField: (key, value) =>
     set((state) => ({
@@ -308,6 +562,48 @@ export const useHostStore = create((set, get) => ({
         },
       };
     }),
+
+  finalizeHostListing: async () => {
+    const state = get();
+    const currentState = state.hostLotState;
+    const currentProfile = state.hostProfile;
+    const hostSub = currentProfile.hostSub ?? currentState.hostSub ?? `mock-host-${Date.now()}`;
+    const hostName = currentProfile.hostName || currentState.hostName || "Scandinavian Host";
+    const persistedListing = await hostListingPersistenceAdapter.persistListing({
+      hostProfile: { hostSub, hostName },
+      listingData: state.listingData,
+      lotDraft: state.listingLotDraft,
+    });
+
+    const newLocation = createLocationFromListing(
+      state.listingData,
+      state.listingLotDraft,
+      persistedListing?.locationId,
+    );
+    const nextLocations = [...(currentState.locations ?? []), newLocation];
+
+    set({
+      hostProfile: {
+        hostSub,
+        hostName,
+      },
+      hostLotState: {
+        ...currentState,
+        hostSub,
+        hostName,
+        locations: nextLocations,
+      },
+      checkedPostIndex: nextLocations.length - 1,
+      listingData: mapLocationToListing(newLocation),
+      listingLotDraft: [],
+      savedListingDraft: null,
+      showLocationsList: false,
+    });
+
+    await AsyncStorage.removeItem(HOST_LISTING_DRAFT_STORAGE_KEY);
+
+    return newLocation;
+  },
 }));
 
 export const selectCurrentHostLocation = (state) =>

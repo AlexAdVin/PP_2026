@@ -80,7 +80,7 @@ export default function StartListingScreen() {
   const setListingData = useHostStore((state) => state.setListingData);
   const updateListingField = useHostStore((state) => state.updateListingField);
   const resetListingData = useHostStore((state) => state.resetListingData);
-  const createHostLocationDraft = useHostStore((state) => state.createHostLocationDraft);
+  const initializeListingLotDraft = useHostStore((state) => state.initializeListingLotDraft);
   const saveListingDraft = useHostStore((state) => state.saveListingDraft);
   const restoreSavedListingDraft = useHostStore((state) => state.restoreSavedListingDraft);
   const [activeSlide, setActiveSlide] = useState(0);
@@ -163,18 +163,13 @@ export default function StartListingScreen() {
       return;
     }
 
-    const createdLocation = createHostLocationDraft({
+    initializeListingLotDraft({
       ...listingData,
       nrOfLots: Number(listingData.nrOfLots),
       hrPrice: Number(listingData.hrPrice),
     });
 
-    if (!createdLocation) {
-      Alert.alert("Could not create listing", "Try again.");
-      return;
-    }
-
-    navigateToHostHome();
+    router.push("/host/create-listing");
   };
 
   const goBack = () => {
