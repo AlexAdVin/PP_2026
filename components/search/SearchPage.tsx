@@ -10,20 +10,21 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   StatusBar,
   Dimensions,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { useLocationStore } from "@/src/store";
+import { authSearchGateAdapter } from "@/src/adapters/authSearchGateAdapter";
 import AmbientBackground from "@/components/layout/AmbientBackground";
 import SearchInput from "./SearchInput";
 import SearchResults from "./SearchResults";
+import { useAuthStore } from "@/src/store/authStore";
 
 const { height } = Dimensions.get("window");
 
@@ -67,6 +68,32 @@ export default function SearchPage() {
   const setDestinationDetails = useLocationStore(
     (state) => state.setDestinationDetails,
   );
+  const session = useAuthStore((state) => state.session);
+  const openAuthModal = useAuthStore((state) => state.openModal);
+  const setPendingSearch = useAuthStore((state) => state.setPendingSearch);
+  const pendingSearch = useAuthStore((state) => state.pendingSearch);
+  const clearPendingSearch = useAuthStore((state) => state.clearPendingSearch);
+
+  const completeSearch = useCallback(
+    async (placeId: string, description: string) => {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/details/json?placeid=${placeId}&key=${apiMaps}`,
+      );
+      const details = await response.json();
+
+      setDestinationDetails({
+        location: details.result.geometry.location,
+        viewport: details.result.geometry.viewport,
+        description,
+      });
+
+      isPlaceSelected.current = true;
+      setQuery(description);
+      setResults([]);
+      router.replace("/driver");
+    },
+    [apiMaps, setDestinationDetails],
+  );
 
   const fetchPlaces = useCallback(async () => {
     if (query.length > 2 && !isPlaceSelected.current) {
@@ -95,27 +122,33 @@ export default function SearchPage() {
   const handleSelectPlace = useCallback(
     async (placeId: string, description: string) => {
       try {
-        const response = await fetch(
-          `https://maps.googleapis.com/maps/api/place/details/json?placeid=${placeId}&key=${apiMaps}`,
-        );
-        const details = await response.json();
+        if (!session) {
+          const gate = await authSearchGateAdapter.recordSearchAttempt();
 
-        setDestinationDetails({
-          location: details.result.geometry.location,
-          viewport: details.result.geometry.viewport,
-          description,
-        });
+          if (!gate.allowed) {
+            setPendingSearch({ placeId, description });
+            openAuthModal("search-limit");
+            return;
+          }
+        }
 
-        isPlaceSelected.current = true;
-        setQuery(description);
-        setResults([]);
-        router.replace("/driver");
+        await completeSearch(placeId, description);
       } catch (error) {
         console.error(error);
       }
     },
-    [apiMaps, setDestinationDetails],
+    [completeSearch, openAuthModal, session, setPendingSearch],
   );
+
+  useEffect(() => {
+    if (!session || !pendingSearch) {
+      return;
+    }
+
+    void completeSearch(pendingSearch.placeId, pendingSearch.description).finally(
+      clearPendingSearch,
+    );
+  }, [clearPendingSearch, completeSearch, pendingSearch, session]);
 
   const handleChangeText = (text: string) => {
     isPlaceSelected.current = false;

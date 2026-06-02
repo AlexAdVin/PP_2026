@@ -17,11 +17,14 @@ import ScreenLayout from "@/components/layout/ScreenLayout";
 import ProfilePassport from "@/components/layout/ProfilePassport";
 import LiquidGlassModal from "@/components/modals/LiquidGlassModal";
 import PaymentMethodScreen from "@/app/modal/PaymentMethodScreen";
+import { useAuthStore } from "@/src/store/authStore";
 
 export default function ProfileScreen() {
   const [activeModal, setActiveModal] = useState<null | "payment">(null);
   const [paymentLabel, setPaymentLabel] = useState("Cards & billing");
   const [modalHeightPercent, setModalHeightPercent] = useState(0.55);
+  const session = useAuthStore((state) => state.session);
+  const profile = useAuthStore((state) => state.profile);
 
   const closeModal = () => setActiveModal(null);
 
@@ -76,9 +79,15 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Account</Text>
 
           <ProfileItem
+            icon="shield-checkmark-outline"
+            title="Authentication"
+            subtitle={session ? profile?.displayName ?? "Signed in" : "Guest mode"}
+          />
+
+          <ProfileItem
             icon="person-outline"
             title="Personal details"
-            subtitle="Profile information"
+            subtitle={profile?.phone ?? profile?.email ?? "Profile information"}
           />
 
           <ProfileItem
@@ -90,7 +99,7 @@ export default function ProfileScreen() {
           <ProfileItem
             icon="card-outline"
             title="Payments"
-            subtitle={paymentLabel}
+            subtitle={session ? paymentLabel : "Available after sign-in"}
             onPress={handlePaymentSelect}
           />
         </View>

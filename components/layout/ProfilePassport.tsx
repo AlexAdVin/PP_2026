@@ -3,8 +3,17 @@ import { View, Text, Image, TouchableOpacity } from "react-native";
 import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
+
 import styles from "@/components/styles/profile.styles";
+import { useAuthStore } from "@/src/store/authStore";
+
 export default function ProfilePassport() {
+  const profile = useAuthStore((state) => state.profile);
+  const session = useAuthStore((state) => state.session);
+
+  const displayName = profile?.displayName ?? "Guest driver";
+  const secondaryLabel = session ? "Authenticated with Supabase" : "Browse mode";
+
   return (
     <View style={styles.headerContainer}>
       <BlurView intensity={55} tint="light" style={styles.mobilityCard}>
@@ -25,15 +34,17 @@ export default function ProfilePassport() {
           </View>
           {/* USER */}
           <View style={{ flex: 1 }}>
-            <Text style={styles.userName}> Anne Larsen </Text>
-            <Text style={styles.userRole}> Level 8 Eco Driver </Text>
+            <Text style={styles.userName}> {displayName} </Text>
+            <Text style={styles.userRole}> {secondaryLabel} </Text>
             <View style={styles.sectionRow}>
               <MaterialCommunityIcons
                 name="tree-outline"
                 size={18}
                 color="#22C55E"
               />
-              <Text style={styles.heroMetric}> 42 Trees Planted </Text>
+              <Text style={styles.heroMetric}>
+                {session ? ` ${profile?.authProvider ?? "phone"} account ` : " Sign in to sync rewards "}
+              </Text>
             </View>
           </View>
         </TouchableOpacity>
