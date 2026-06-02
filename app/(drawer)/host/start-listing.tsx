@@ -15,7 +15,6 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import FlowIntroSlides, { type FlowIntroSlide } from "@/components/hostHub/shared/FlowIntroSlides";
 import FlowProgressBar from "@/components/hostHub/shared/FlowProgressBar";
 import FooterBackNext from "@/components/hostHub/startListing/FooterBackNext";
 import ManageHostLocation from "@/components/hostHub/startListing/ManageHostLocation";
@@ -43,57 +42,6 @@ type LocationPayload = {
 };
 
 const imageBackground = require("@/assets/img/6232c93f3ccdf.jpg");
-
-const introSlides: FlowIntroSlide[] = [
-  {
-    id: "start-intro-1",
-    eyebrow: "Start listing",
-    title: "Go live fast, then refine the details.",
-    subtitle: "This first flow is intentionally quick so you can move from idea to draft without friction.",
-    chips: ["Fast setup", "Price in minutes", "Name it well"],
-    cards: [
-      {
-        id: "start-intro-1-card-1",
-        icon: "timer-sand",
-        title: "Only the essentials first",
-        body: "Set the parking type, address, lot count, hourly price, and listing name before moving into lot-by-lot settings.",
-      },
-      {
-        id: "start-intro-1-card-2",
-        icon: "cash-fast",
-        title: "Set a confident starting price",
-        body: "Begin with one strong hourly rate now, then fine-tune per-lot pricing later if some spaces deserve a premium.",
-      },
-      {
-        id: "start-intro-1-card-3",
-        icon: "content-save-outline",
-        title: "Save & Exit stays available",
-        body: "If you want to pause, the draft can be saved and resumed from the exact step you left.",
-      },
-    ],
-  },
-  {
-    id: "start-intro-2",
-    eyebrow: "Smart suggestions",
-    title: "A cool name and a clear price help the listing stand out.",
-    subtitle: "Keep it short, useful, and specific. That gives drivers a better first impression immediately.",
-    chips: ["Attractive name", "Clear offer", "Easy to edit later"],
-    cards: [
-      {
-        id: "start-intro-2-card-1",
-        icon: "lightbulb-on-outline",
-        title: "We can nudge good naming",
-        body: "Names like Central EV Spot, Office Garage After Hours, or Quiet Courtyard Parking tell drivers why the location matters.",
-      },
-      {
-        id: "start-intro-2-card-2",
-        icon: "tag-outline",
-        title: "Price and title work together",
-        body: "A clear hourly rate and a memorable listing name make the parking feel more trustworthy and easier to compare.",
-      },
-    ],
-  },
-];
 
 const content: SlideContent[] = [
   {
@@ -137,7 +85,6 @@ export default function StartListingScreen() {
   const saveListingDraft = useHostStore((state) => state.saveListingDraft);
   const restoreSavedListingDraft = useHostStore((state) => state.restoreSavedListingDraft);
   const [activeSlide, setActiveSlide] = useState(0);
-  const [activeIntroSlide, setActiveIntroSlide] = useState(params.resume === "1" ? introSlides.length : 0);
 
   const navigateToHostHome = () => {
     InteractionManager.runAfterInteractions(() => {
@@ -153,7 +100,6 @@ export default function StartListingScreen() {
         const savedDraft = await restoreSavedListingDraft();
 
         if (savedDraft && isMounted) {
-          setActiveIntroSlide(introSlides.length);
           setActiveSlide(savedDraft.step);
           return;
         }
@@ -161,7 +107,6 @@ export default function StartListingScreen() {
 
       if (isMounted) {
         resetListingData();
-        setActiveIntroSlide(0);
         setActiveSlide(0);
       }
     };
@@ -225,7 +170,7 @@ export default function StartListingScreen() {
       hrPrice: Number(listingData.hrPrice),
     });
 
-    router.push("/host/create-listing");
+    router.push("/host/create-listing-intro");
   };
 
   const goBack = () => {
@@ -241,18 +186,6 @@ export default function StartListingScreen() {
     await saveListingDraft({ step: activeSlide });
     navigateToHostHome();
   };
-
-  if (activeIntroSlide < introSlides.length) {
-    return (
-      <FlowIntroSlides
-        slides={introSlides}
-        imageBackground={imageBackground}
-        onComplete={() => setActiveIntroSlide(introSlides.length)}
-        onExit={navigateToHostHome}
-        finalLabel="Start setup"
-      />
-    );
-  }
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

@@ -5,79 +5,11 @@ import { useRouter } from "expo-router";
 import BackBtn from "@/components/btns/BackBtn";
 import CreateListingFooter from "@/components/hostHub/createListing/CreateListingFooter";
 import LotSettings from "@/components/hostHub/createListing/LotSettings";
-import FlowIntroSlides, { type FlowIntroSlide } from "@/components/hostHub/shared/FlowIntroSlides";
 import LotsCarousel from "@/components/lots/LotsCarousel";
 import styles from "@/global/style/styles";
 import { useHostStore } from "@/src/hostStore";
 
 const { width } = Dimensions.get("screen");
-const imageBackground = require("@/assets/img/6232c93f3ccdf.jpg");
-
-const introSlides: FlowIntroSlide[] = [
-  {
-    id: "lot-intro-1",
-    eyebrow: "Lot settings",
-    title: "Now decide when the parking should be available.",
-    subtitle: "Many hosts open parking while they are at work, and institutions often share spaces after hours when employees go home.",
-    chips: ["Workday windows", "After-hours access", "Per-lot setup"],
-    cards: [
-      {
-        id: "lot-intro-1-card-1",
-        icon: "briefcase-clock-outline",
-        title: "Great for daytime routines",
-        body: "Make a lot available while you are away, then reclaim it later when you need it again.",
-      },
-      {
-        id: "lot-intro-1-card-2",
-        icon: "office-building-clock-outline",
-        title: "Useful for offices and institutions",
-        body: "Open staff parking after hours, on weekends, or whenever the site is otherwise sitting empty.",
-      },
-    ],
-  },
-  {
-    id: "lot-intro-2",
-    eyebrow: "Availability defaults",
-    title: "Each lot starts with a 12-month window by default.",
-    subtitle: "That default can be changed at any time, and it keeps rolling forward automatically unless you stop it.",
-    chips: ["12-month default", "Editable anytime", "Auto-reset behavior"],
-    cards: [
-      {
-        id: "lot-intro-2-card-1",
-        icon: "calendar-range-outline",
-        title: "Choose the overall date range",
-        body: "Shorten it, extend it, or switch it off entirely whenever your schedule changes.",
-      },
-      {
-        id: "lot-intro-2-card-2",
-        icon: "calendar-clock-outline",
-        title: "Choose days and time intervals",
-        body: "Pick which days of the week are available and, for those days, the exact time intervals the lot can be booked.",
-      },
-    ],
-  },
-  {
-    id: "lot-intro-3",
-    eyebrow: "Control and pricing",
-    title: "Lots can vary in availability and price.",
-    subtitle: "Use the master switch for the entire listing or pause a single lot when only one bay should be unavailable.",
-    chips: ["Per-lot price", "Granular switches", "Hosting Hub master switch"],
-    cards: [
-      {
-        id: "lot-intro-3-card-1",
-        icon: "toggle-switch-outline",
-        title: "Master switch for the full listing",
-        body: "Pause or reopen the whole listing here. The same listing-wide control remains available later from Hosting Hub.",
-      },
-      {
-        id: "lot-intro-3-card-2",
-        icon: "car-multiple",
-        title: "Different lots can behave differently",
-        body: "One lot can stay private, another can stay open every evening, and the price can vary lot by lot.",
-      },
-    ],
-  },
-];
 
 export default function CreateListingScreen() {
   const router = useRouter();
@@ -90,10 +22,12 @@ export default function CreateListingScreen() {
   const finalizeHostListing = useHostStore((state) => state.finalizeHostListing);
   const [checkedLot, setCheckedLot] = useState(0);
   const [activeTab, setActiveTab] = useState("Availability");
-  const [activeIntroSlide, setActiveIntroSlide] = useState(0);
 
   const isListingActive = useMemo(
-    () => (listingLotDraft.length ? listingLotDraft.some((lot) => lot?.avlBool !== false) : listingData?.isActive ?? true),
+    () =>
+      listingLotDraft.length
+        ? listingLotDraft.some((lot: { avlBool?: boolean } | undefined) => lot?.avlBool !== false)
+        : listingData?.isActive ?? true,
     [listingData?.isActive, listingLotDraft],
   );
 
@@ -104,16 +38,6 @@ export default function CreateListingScreen() {
   }, [initializeListingLotDraft, listingData, listingLotDraft.length]);
 
   const handleBack = () => {
-    if (activeIntroSlide < introSlides.length) {
-      if (activeIntroSlide === 0) {
-        router.back();
-        return;
-      }
-
-      setActiveIntroSlide((current) => current - 1);
-      return;
-    }
-
     if (activeTab === "Facilities") {
       setActiveTab("Availability");
       return;
@@ -123,16 +47,6 @@ export default function CreateListingScreen() {
   };
 
   const handleNext = async () => {
-    if (activeIntroSlide < introSlides.length) {
-      if (activeIntroSlide === introSlides.length - 1) {
-        setActiveIntroSlide(introSlides.length);
-        return;
-      }
-
-      setActiveIntroSlide((current) => current + 1);
-      return;
-    }
-
     if (activeTab === "Availability") {
       setActiveTab("Facilities");
       return;
@@ -151,18 +65,6 @@ export default function CreateListingScreen() {
       Alert.alert("Could not save listing", "Try again.");
     }
   };
-
-  if (activeIntroSlide < introSlides.length) {
-    return (
-      <FlowIntroSlides
-        slides={introSlides}
-        imageBackground={imageBackground}
-        onComplete={() => setActiveIntroSlide(introSlides.length)}
-        onExit={() => router.back()}
-        finalLabel="Open settings"
-      />
-    );
-  }
 
   return (
     <LinearGradient colors={["rgba(200,0,0,0.05)", "rgba(20,0,0,1)"]} style={StyleSheet.absoluteFill}>

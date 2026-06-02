@@ -53,6 +53,14 @@ export default function DrawerLayout() {
       >
         {/* landing */}
         <Drawer.Screen name="index" options={{ drawerLabel: "Home" }} />
+        <Drawer.Screen
+          name="welcome"
+          options={{
+            drawerItemStyle: { display: "none" },
+            drawerLabel: "Welcome",
+            title: "Welcome",
+          }}
+        />
 
         {/* Driver flow */}
         <Drawer.Screen

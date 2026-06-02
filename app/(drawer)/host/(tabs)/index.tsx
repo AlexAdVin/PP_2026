@@ -228,11 +228,11 @@ export default function HostHomeScreen() {
             <View style={stylesScreen.emptyBulletWrap}>
               <BulletPoints />
             </View>
-            <HostFooterButton label="Start sharing" onPress={() => router.push("/host/start-listing")} />
+            <HostFooterButton label="Start sharing" onPress={() => router.push("/host/start-listing-intro")} />
             <TouchableOpacity
               style={stylesScreen.secondaryButton}
               activeOpacity={0.85}
-              onPress={() => router.push("/host/start-listing")}
+              onPress={() => router.push("/host/start-listing-intro")}
             >
               <Text style={stylesScreen.secondaryButtonText}>Tell someone</Text>
             </TouchableOpacity>
@@ -297,7 +297,7 @@ export default function HostHomeScreen() {
         </View>
 
         <View style={stylesScreen.section}>
-          <SectionHeader title="Quick actions" actionLabel="New listing" onPressAction={() => router.push("/host/start-listing")} />
+          <SectionHeader title="Quick actions" actionLabel="New listing" onPressAction={() => router.push("/host/start-listing-intro")} />
           <View style={stylesScreen.quickRow}>
             {quickActions.map((action) => (
               <QuickActionCard

@@ -8,6 +8,7 @@ import {
   ImageBackground,
   StatusBar,
 } from "react-native";
+import { useEffect, useState } from "react";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,12 +16,43 @@ import { router, useNavigation } from "expo-router";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import AmbientBackground from "@/components/layout/AmbientBackground";
 import ContinueActionCard from "@/components/layout/premium/ContinueActionCard";
+import { appIntroAdapter } from "@/src/adapters/appIntroAdapter";
 
 const { height } = Dimensions.get("window");
 
 export default function Landing() {
   const navigation = useNavigation<any>();
   const imageBackground = require("@/assets/img/6232c93f3ccdf.jpg");
+  const [hasCheckedIntro, setHasCheckedIntro] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkIntro = async () => {
+      const hasSeenIntro = await appIntroAdapter.hasSeenAppIntro();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!hasSeenIntro) {
+        router.replace("/welcome");
+        return;
+      }
+
+      setHasCheckedIntro(true);
+    };
+
+    void checkIntro();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (!hasCheckedIntro) {
+    return <View style={styles.container} />;
+  }
 
   return (
     <View style={styles.container}>

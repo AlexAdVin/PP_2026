@@ -88,6 +88,16 @@ The host flow now separates database-backed locations from locally persisted lis
 
 This mirrors production behavior where listed locations come from a server-side source while incomplete listing progress remains local until the host explicitly finishes publishing.
 
+## Intro Flow Routing
+
+The app now treats onboarding splashes as standalone routes instead of embedding them inside the destination screens.
+
+- `app/(drawer)/welcome.tsx` is the first-launch app intro shown before Landing.
+- `app/(drawer)/host/start-listing-intro.tsx` introduces the host metadata wizard before `app/(drawer)/host/start-listing.tsx`.
+- `app/(drawer)/host/create-listing-intro.tsx` introduces lot-level settings before `app/(drawer)/host/create-listing.tsx`.
+- `components/hostHub/shared/FlowSplashScreen.tsx` is the shared standalone splash surface used by all of those routes.
+- `src/adapters/appIntroAdapter.ts` persists the first-launch completion flag in AsyncStorage so the app intro is only shown before Landing until the user finishes or skips it once.
+
 ## Listing Creation Flow
 
 Host listing creation is now a two-stage process:
@@ -95,6 +105,7 @@ Host listing creation is now a two-stage process:
 - `app/(drawer)/host/start-listing.tsx` collects listing metadata such as location type, address, lot count, hourly price, and listing name.
 - `app/(drawer)/host/create-listing.tsx` edits the per-lot draft created from that metadata. This migrated stage replaces the old Recoil-based `CreateListingNew` flow with Zustand-backed `listingLotDraft` state.
 - Each lot draft contains availability dates, weekly availability times, charger configuration, rules, and transaction placeholders.
+- Listing creation is preceded by two standalone intro routes so the actual editing screens stay focused on form and settings responsibilities only.
 - Final save calls `src/adapters/hostListingPersistenceAdapter.ts`, which currently returns a placeholder persistence result. The store then materializes a fully shaped location record in local host state using that response.
 
 This keeps Expo 54-compatible UI flow and state management in place while leaving the actual backend write contract behind a single adapter boundary.
