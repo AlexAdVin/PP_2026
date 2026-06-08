@@ -22,7 +22,7 @@ type UpsertableUserProfile = {
 
 function pickProvider(user: User) {
   const firstIdentity = user.identities?.[0]?.provider;
-  return firstIdentity ?? user.app_metadata.provider ?? "phone";
+  return firstIdentity ?? user.app_metadata.provider ?? (user.email ? "email" : "phone");
 }
 
 function buildDisplayName(user: User) {

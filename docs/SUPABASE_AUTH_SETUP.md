@@ -29,6 +29,8 @@ npm install @supabase/supabase-js expo-apple-authentication expo-crypto
 
 The existing GraphQL model uses `Driver` as the user-facing entity. For Supabase, the app now writes a minimal relational `users` table aligned to that concept and keyed by `auth.users.id`.
 
+Run the full SQL command from [docs/supabase-users.sql](c:/Users/aaavu/Documents/TBD/PP_2026_Project/PP_2026/docs/supabase-users.sql) in the Supabase SQL Editor. It creates the table if it does not exist, enables RLS, and adds a trigger that mirrors confirmed `auth.users` records into `public.users`.
+
 ```sql
 create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -57,6 +59,8 @@ before update on public.users
 for each row
 execute function public.set_updated_at();
 ```
+
+For production, prefer the dedicated SQL script instead of manually pasting partial snippets, because email-confirmed sign-ups rely on the database-side sync trigger.
 
 ## Row Level Security
 
@@ -95,9 +99,10 @@ with check (auth.uid() = id);
 ### Email Sign-In / Sign-Up
 
 1. Enable Email in Auth > Providers.
-2. Decide whether email confirmation is required for production.
-3. If email confirmation is enabled, configure the email template and redirect handling.
-4. The app currently supports email/password sign-in and sign-up inside the auth modal.
+2. Require email confirmation for production.
+3. Configure the email template and redirect handling.
+4. The app supports email/password sign-in and sign-up inside the auth modal.
+5. Confirmed users are written into `public.users` by the SQL trigger from [docs/supabase-users.sql](c:/Users/aaavu/Documents/TBD/PP_2026_Project/PP_2026/docs/supabase-users.sql).
 
 ### Apple Sign-In
 
@@ -114,6 +119,8 @@ with check (auth.uid() = id);
 - `src/adapters/authSearchGateAdapter.ts`: unauthenticated search-count persistence.
 - `components/auth/AuthFlowScreen.tsx`: provider-agnostic auth stepper UI.
 - `components/auth/AuthModalHost.tsx`: renders the auth flow inside `LiquidGlassModal`.
+
+The app still upserts the signed-in session profile client-side as an idempotent safety net, but the database trigger is the primary path for email-confirmed account creation.
 
 ## Modal Trigger Rules
 

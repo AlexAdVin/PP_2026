@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import AuthModalHost from '@/components/auth/AuthModalHost';
 import { useAuthBootstrap } from '@/src/store/authStore';
@@ -11,15 +12,16 @@ export default function RootLayout() {
   useAuthBootstrap();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <>
-        <Stack screenOptions={{ headerShown: false }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <>
+          <Stack screenOptions={{ headerShown: false }}>
         
-          {/* Drawer app */}
-          <Stack.Screen name="(drawer)" />
-          {/* Driver flow */}
-          {/* <Stack.Screen name="driver" /> */}
-          {/* Hosting flow */}
+            {/* Drawer app */}
+            <Stack.Screen name="(drawer)" />
+            {/* Driver flow */}
+            {/* <Stack.Screen name="driver" /> */}
+            {/* Hosting flow */}
   {/*         <Stack.Screen name="(hostingStack)" /> */}
 
   {/* Global modals */}
@@ -29,9 +31,10 @@ export default function RootLayout() {
             presentation: 'modal',
           }}
         /> */}
-        </Stack>
-        <AuthModalHost />
-      </>
-    </ThemeProvider>
+          </Stack>
+          <AuthModalHost />
+        </>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
