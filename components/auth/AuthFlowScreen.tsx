@@ -15,23 +15,30 @@ import * as AppleAuthentication from "expo-apple-authentication";
 
 import { AUTH_METHODS, type AuthMethodKey } from "@/src/auth/providers";
 import { supabase } from "@/src/lib/supabase";
+import { useAuthStore, type AuthModalReason } from "@/src/store/authStore";
 
 type AuthStep = "choose" | "details" | "verify";
+type EmailMode = "sign-in" | "sign-up";
 
 type Props = {
-  reason: "search-limit";
+  reason: AuthModalReason;
   onClose: () => void;
   onStepChange?: (step: AuthStep, method?: AuthMethodKey) => void;
 };
 
 export default function AuthFlowScreen({ onClose, onStepChange }: Props) {
-  const [selectedMethod, setSelectedMethod] = useState<AuthMethodKey>();
+  const [selectedMethod, setSelectedMethod] = useState<AuthMethodKey>("email");
   const [step, setStep] = useState<AuthStep>("choose");
+  const [emailMode, setEmailMode] = useState<EmailMode>("sign-in");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [successText, setSuccessText] = useState<string | null>(null);
+  const setHostAuthPending = useAuthStore((state) => state.setHostAuthPending);
 
   const selectedConfig = useMemo(
     () => AUTH_METHODS.find((method) => method.key === selectedMethod),
@@ -46,6 +53,16 @@ export default function AuthFlowScreen({ onClose, onStepChange }: Props) {
   const handleChooseMethod = (method: AuthMethodKey) => {
     setSelectedMethod(method);
     setErrorText(null);
+    setSuccessText(null);
+    onStepChange?.(step, method);
+  };
+
+  const completeSuccessfulAuth = () => {
+    if (reason === "host-required") {
+      setHostAuthPending(false);
+    }
+
+    onClose();
   };
 
   const handleContinue = async () => {
@@ -59,6 +76,54 @@ export default function AuthFlowScreen({ onClose, onStepChange }: Props) {
     }
 
     setErrorText(null);
+    setSuccessText(null);
+
+    if (selectedMethod === "email") {
+      setBusy(true);
+      try {
+        if (emailMode === "sign-in") {
+          const { error } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          completeSuccessfulAuth();
+        } else {
+          const { data, error } = await supabase.auth.signUp({
+            email: email.trim(),
+            password,
+            options: {
+              data: {
+                display_name: displayName.trim(),
+              },
+            },
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          if (data.session) {
+            completeSuccessfulAuth();
+            return;
+          }
+
+          setSuccessText("Account created. Confirm your email if required, then sign in.");
+          setEmailMode("sign-in");
+        }
+      } catch (error) {
+        setErrorText(
+          error instanceof Error ? error.message : "Unable to authenticate with email.",
+        );
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
 
     if (selectedMethod === "phone") {
       if (step === "details") {
@@ -102,7 +167,7 @@ export default function AuthFlowScreen({ onClose, onStepChange }: Props) {
             throw error;
           }
 
-          onClose();
+          completeSuccessfulAuth();
         } catch (error) {
           setErrorText(
             error instanceof Error ? error.message : "Unable to verify SMS code.",
@@ -155,7 +220,7 @@ export default function AuthFlowScreen({ onClose, onStepChange }: Props) {
           throw error;
         }
 
-        onClose();
+        completeSuccessfulAuth();
       } catch (error) {
         if (
           error instanceof Error &&
@@ -175,6 +240,7 @@ export default function AuthFlowScreen({ onClose, onStepChange }: Props) {
 
   const handleBack = () => {
     setErrorText(null);
+    setSuccessText(null);
 
     if (step === "verify") {
       setFlowStep("details");
@@ -205,23 +271,40 @@ export default function AuthFlowScreen({ onClose, onStepChange }: Props) {
       }
     }
 
+    if (selectedMethod === "email") {
+      if (emailMode === "sign-in") {
+        return email.trim().length > 4 && password.length >= 8;
+      }
+
+      return (
+        displayName.trim().length >= 2 &&
+        email.trim().length > 4 &&
+        password.length >= 8
+      );
+    }
+
     return true;
-  }, [displayName, otpCode, phone, selectedMethod, step]);
+  }, [displayName, email, emailMode, otpCode, password, phone, selectedMethod, step]);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>
         {step === "choose" && "Authenticate"}
-        {step === "details" && (selectedMethod === "phone" ? "Phone sign in" : "Apple sign in")}
+        {step === "details" && selectedMethod === "email" && (emailMode === "sign-in" ? "Email sign in" : "Create account")}
+        {step === "details" && selectedMethod === "phone" && "Phone sign in"}
+        {step === "details" && selectedMethod === "apple" && "Apple sign in"}
         {step === "verify" && "Verify code"}
       </Text>
 
       <Text style={styles.subtitle}>
-        {step === "choose" && "Pick a sign-in method to keep searching and sync your profile."}
+        {step === "choose" && "Pick a sign-in method to continue and sync your profile."}
+        {step === "details" && selectedMethod === "email" && (emailMode === "sign-in" ? "Sign in with your email and password." : "Create your account with email and password.")}
         {step === "details" && selectedMethod === "phone" && "We will send a one-time code by SMS."}
         {step === "details" && selectedMethod === "apple" && "Continue with the secure Apple sign-in sheet."}
         {step === "verify" && `Enter the code sent to ${phone}.`}
       </Text>
+
+      <Text style={styles.reasonText}>{getReasonCopy(reason)}</Text>
 
       {step === "choose" && (
         <View>
@@ -252,6 +335,53 @@ export default function AuthFlowScreen({ onClose, onStepChange }: Props) {
               </View>
             </TouchableOpacity>
           ))}
+        </View>
+      )}
+
+      {step === "details" && selectedMethod === "email" && (
+        <View style={styles.form}>
+          <View style={styles.modeSwitchRow}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.modeChip, emailMode === "sign-in" && styles.modeChipActive]}
+              onPress={() => setEmailMode("sign-in")}
+            >
+              <Text style={[styles.modeChipText, emailMode === "sign-in" && styles.modeChipTextActive]}>
+                Sign in
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.modeChip, emailMode === "sign-up" && styles.modeChipActive]}
+              onPress={() => setEmailMode("sign-up")}
+            >
+              <Text style={[styles.modeChipText, emailMode === "sign-up" && styles.modeChipTextActive]}>
+                Create account
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {emailMode === "sign-up" && (
+            <Field
+              label="Full name"
+              value={displayName}
+              onChangeText={setDisplayName}
+              placeholder="Anne Larsen"
+            />
+          )}
+          <Field
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="anne@example.com"
+            keyboardType="email-address"
+          />
+          <Field
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Minimum 8 characters"
+            secureTextEntry
+          />
         </View>
       )}
 
@@ -296,6 +426,7 @@ export default function AuthFlowScreen({ onClose, onStepChange }: Props) {
       )}
 
       {errorText && <Text style={styles.errorText}>{errorText}</Text>}
+      {successText && <Text style={styles.successText}>{successText}</Text>}
 
       <View style={styles.footerButtons}>
         {step !== "choose" && (
@@ -320,6 +451,7 @@ export default function AuthFlowScreen({ onClose, onStepChange }: Props) {
           ) : (
             <Text style={styles.buttonText}>
               {step === "choose" && "Continue"}
+              {step === "details" && selectedMethod === "email" && (emailMode === "sign-in" ? "Sign in" : "Create account")}
               {step === "details" && selectedMethod === "phone" && "Send code"}
               {step === "details" && selectedMethod === "apple" && "Continue with Apple"}
               {step === "verify" && "Verify"}
@@ -336,7 +468,8 @@ type FieldProps = {
   value: string;
   onChangeText: (value: string) => void;
   placeholder: string;
-  keyboardType?: "default" | "phone-pad" | "number-pad";
+  keyboardType?: "default" | "phone-pad" | "number-pad" | "email-address";
+  secureTextEntry?: boolean;
 };
 
 function Field({
@@ -345,6 +478,7 @@ function Field({
   onChangeText,
   placeholder,
   keyboardType = "default",
+  secureTextEntry = false,
 }: FieldProps) {
   return (
     <View style={styles.field}>
@@ -356,6 +490,7 @@ function Field({
         placeholder={placeholder}
         placeholderTextColor="#94A3B8"
         keyboardType={keyboardType}
+        secureTextEntry={secureTextEntry}
         autoCapitalize="none"
       />
     </View>
@@ -376,10 +511,38 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: 8,
-    marginBottom: 28,
+    marginBottom: 12,
     color: "#64748B",
     fontSize: 15,
     lineHeight: 22,
+  },
+  reasonText: {
+    marginBottom: 18,
+    color: "#334155",
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  modeSwitchRow: {
+    flexDirection: "row",
+    marginBottom: 16,
+    gap: 10,
+  },
+  modeChip: {
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: "rgba(15,23,42,0.06)",
+  },
+  modeChipActive: {
+    backgroundColor: "#0F172A",
+  },
+  modeChipText: {
+    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  modeChipTextActive: {
+    color: "#FFFFFF",
   },
   option: {
     marginBottom: 14,
@@ -466,6 +629,11 @@ const styles = StyleSheet.create({
     color: "#B91C1C",
     fontSize: 13,
   },
+  successText: {
+    marginBottom: 16,
+    color: "#15803D",
+    fontSize: 13,
+  },
   footerButtons: {
     marginTop: "auto",
     flexDirection: "row",
@@ -507,3 +675,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+function getReasonCopy(reason: AuthModalReason) {
+  switch (reason) {
+    case "profile-required":
+      return "Create your account to access your profile and saved preferences.";
+    case "payment-required":
+      return "Authentication is required before confirming payment and starting a reservation.";
+    case "host-required":
+      return "Sign in before continuing into the hosting workspace.";
+    case "search-limit":
+    default:
+      return "Guest browsing is limited. Authenticate to keep searching and save your activity.";
+  }
+}

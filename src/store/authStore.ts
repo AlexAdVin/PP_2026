@@ -14,7 +14,11 @@ type PendingSearch = {
   description: string;
 };
 
-type AuthModalReason = "search-limit";
+export type AuthModalReason =
+  | "search-limit"
+  | "profile-required"
+  | "payment-required"
+  | "host-required";
 
 type AuthState = {
   initialized: boolean;
@@ -23,6 +27,7 @@ type AuthState = {
   modalVisible: boolean;
   modalReason: AuthModalReason | null;
   pendingSearch: PendingSearch | null;
+  hostAuthPending: boolean;
   setInitialized: (value: boolean) => void;
   setSession: (session: Session | null) => void;
   setProfile: (profile: AppUserProfile | null) => void;
@@ -30,6 +35,7 @@ type AuthState = {
   closeModal: () => void;
   setPendingSearch: (payload: PendingSearch) => void;
   clearPendingSearch: () => void;
+  setHostAuthPending: (value: boolean) => void;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -39,6 +45,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   modalVisible: false,
   modalReason: null,
   pendingSearch: null,
+  hostAuthPending: false,
   setInitialized: (value) => set({ initialized: value }),
   setSession: (session) => set({ session }),
   setProfile: (profile) => set({ profile }),
@@ -46,6 +53,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   closeModal: () => set({ modalVisible: false, modalReason: null }),
   setPendingSearch: (payload) => set({ pendingSearch: payload }),
   clearPendingSearch: () => set({ pendingSearch: null }),
+  setHostAuthPending: (value) => set({ hostAuthPending: value }),
 }));
 
 async function hydrateSession(session: Session | null) {

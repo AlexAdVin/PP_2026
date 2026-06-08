@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 
-export type AuthMethodKey = "phone" | "apple";
+export type AuthMethodKey = "email" | "phone" | "apple";
 
 export type AuthMethodConfig = {
   key: AuthMethodKey;
@@ -10,6 +10,12 @@ export type AuthMethodConfig = {
 };
 
 export const AUTH_METHODS: AuthMethodConfig[] = [
+  {
+    key: "email",
+    title: "Email",
+    subtitle: "Sign up or sign in with email and password",
+    icon: "mail-outline",
+  },
   {
     key: "phone",
     title: "Phone OTP",

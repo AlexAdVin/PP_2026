@@ -84,7 +84,7 @@ export default function LiquidGlassModal({
   }));
 
   return (
-    <>
+    <View pointerEvents="box-none" style={styles.overlay}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onBackdropPress ?? closeSheet}>
         <Animated.View style={[styles.backdrop, backdropStyle]} />
       </Pressable>
@@ -112,7 +112,7 @@ export default function LiquidGlassModal({
           {children}
         </Animated.View>
       </GestureDetector>
-    </>
+    </View>
   );
 }
 
@@ -129,6 +129,10 @@ function GlassHighlights() {
 }
 
 const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "flex-end",
+  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(15,23,42,0.18)",

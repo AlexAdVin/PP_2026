@@ -2,6 +2,7 @@
 
 This app now uses Supabase Auth as the primary identity system, with a modular client-side flow that currently supports:
 
+- Email sign-up and sign-in with password
 - Phone OTP over SMS
 - Sign in with Apple
 
@@ -21,7 +22,7 @@ EXPO_PUBLIC_SUPABASE_KEY=your_publishable_key
 Installed in the app:
 
 ```bash
-npm install @supabase/supabase-js expo-apple-authentication
+npm install @supabase/supabase-js expo-apple-authentication expo-crypto
 ```
 
 ## Minimal User Table
@@ -91,6 +92,13 @@ with check (auth.uid() = id);
 3. Set production SMS templates and rate limits.
 4. Add test phone numbers only in non-production environments.
 
+### Email Sign-In / Sign-Up
+
+1. Enable Email in Auth > Providers.
+2. Decide whether email confirmation is required for production.
+3. If email confirmation is enabled, configure the email template and redirect handling.
+4. The app currently supports email/password sign-in and sign-up inside the auth modal.
+
 ### Apple Sign-In
 
 1. Enable Apple in Auth > Providers.
@@ -107,11 +115,20 @@ with check (auth.uid() = id);
 - `components/auth/AuthFlowScreen.tsx`: provider-agnostic auth stepper UI.
 - `components/auth/AuthModalHost.tsx`: renders the auth flow inside `LiquidGlassModal`.
 
+## Modal Trigger Rules
+
+- Search gate: unauthenticated users can complete 3 searches; the 4th search attempt opens the auth modal.
+- Profile passport: pressing the passport header while signed out opens the auth modal.
+- Pay confirmation: signed-out users can browse and reach the pay screen, but pressing Confirm and pay opens the auth modal.
+- Hosting drawer entry: pressing Hosting Home while signed out opens the hosting intro slides first; when the user finishes or skips those slides, the auth modal opens.
+
 ## Current Trigger Rule
 
 - Unauthenticated users can complete 3 searches.
 - On the 4th search attempt, the auth modal is shown.
 - After successful authentication, the blocked search resumes automatically.
+- Email is the default selected auth method.
+- Phone OTP and Apple sign-in remain available as secondary methods.
 
 ## Next Extensions
 

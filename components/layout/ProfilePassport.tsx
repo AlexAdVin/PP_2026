@@ -10,9 +10,22 @@ import { useAuthStore } from "@/src/store/authStore";
 export default function ProfilePassport() {
   const profile = useAuthStore((state) => state.profile);
   const session = useAuthStore((state) => state.session);
+  const openModal = useAuthStore((state) => state.openModal);
 
   const displayName = profile?.displayName ?? "Guest driver";
-  const secondaryLabel = session ? "Authenticated with Supabase" : "Browse mode";
+  const secondaryLabel = session ? "Level 8 Eco Driver" : "Browse mode";
+  const metricLabel = session
+    ? " 42 Trees Planted "
+    : " Sign in to sync rewards ";
+
+  const handlePress = () => {
+    if (!session) {
+      openModal("profile-required");
+      return;
+    }
+
+    router.push("/profile");
+  };
 
   return (
     <View style={styles.headerContainer}>
@@ -20,7 +33,7 @@ export default function ProfilePassport() {
         {/* HEADER */}
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => router.push("/profile")}
+          onPress={handlePress}
           style={styles.sectionRow}
         >
           {/* AVATAR */}
@@ -34,7 +47,7 @@ export default function ProfilePassport() {
           </View>
           {/* USER */}
           <View style={{ flex: 1 }}>
-            <Text style={styles.userName}> {displayName} </Text>
+            <Text style={styles.userName}> {session ? " Anne Larsen " : ` ${displayName} `} </Text>
             <Text style={styles.userRole}> {secondaryLabel} </Text>
             <View style={styles.sectionRow}>
               <MaterialCommunityIcons
@@ -42,9 +55,7 @@ export default function ProfilePassport() {
                 size={18}
                 color="#22C55E"
               />
-              <Text style={styles.heroMetric}>
-                {session ? ` ${profile?.authProvider ?? "phone"} account ` : " Sign in to sync rewards "}
-              </Text>
+              <Text style={styles.heroMetric}>{metricLabel}</Text>
             </View>
           </View>
         </TouchableOpacity>

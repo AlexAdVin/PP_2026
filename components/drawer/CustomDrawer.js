@@ -21,7 +21,7 @@ import { Feather, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import profileStyles from "@/components/styles/profile.styles";
 
-const { width } = Dimensions.get("window");
+//const { width } = Dimensions.get("window");
 
 const CustomDrawer = (props) => {
   const router = useRouter();

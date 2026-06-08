@@ -7,6 +7,7 @@ import styles from '../../../global/style/styles'
 import BackBtn from '@/components/btns/BackBtn'
 import TimeReg from '@/components/time/TimeReg'
 import { useLocationStore } from '../../../src/store'
+import { useAuthStore } from '@/src/store/authStore'
 
 const { width, height } = Dimensions.get("window");
 
@@ -15,14 +16,16 @@ const SURGE_CHARGE_RATE = 10.5;
 const cancelPolicy = 'I agree with the House Rules, Cancellation Policy and the Guest Refund Policy. I understand and agree to pay the total amount shown which include Service Fees.'
 
 const Pay = () => {
-  const { hrPrice, lotID } = useLocalSearchParams();
-//console.log("Pay - hrPrice, lotID -->", hrPrice, lotID)
+  const { hrPrice } = useLocalSearchParams();
+//console.log("Pay - hrPrice -->", hrPrice)
 
   // Convert string to number
   const hourlyPrice = Number(hrPrice);
 
   const router = useRouter();
   const { bookingTime } = useLocationStore();
+  const session = useAuthStore((state) => state.session);
+  const openModal = useAuthStore((state) => state.openModal);
 
   const [showTPicker, setShowTPicker] = useState(false);
 
@@ -47,6 +50,11 @@ const Pay = () => {
   const promptedPrice = (hourlyPrice * parseFloat(new Date(duration)?.getHours().toString()) * SURGE_CHARGE_RATE / 10) + (hourlyPrice / 60 * parseFloat(new Date(duration)?.getMinutes().toString()) * SURGE_CHARGE_RATE / 10)
 
   const handleConfirm = () => {
+    if (!session) {
+      openModal('payment-required');
+      return;
+    }
+
     // Mock transaction
     console.log('Booking confirmed');
     router.push('/'); // Or to a success screen

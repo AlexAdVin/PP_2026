@@ -10,12 +10,15 @@ import { useRouter } from "expo-router";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import CustomDrawer from "@/components/drawer/CustomDrawer";
+import { useAuthStore } from "@/src/store/authStore";
 
 /* const { width, height } = Dimensions.get("window"); */
 
 export default function DrawerLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
+  const session = useAuthStore((state) => state.session);
+  const setHostAuthPending = useAuthStore((state) => state.setHostAuthPending);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -92,6 +95,13 @@ export default function DrawerLayout() {
           listeners={{
             drawerItemPress: (event) => {
               event.preventDefault();
+
+              if (!session) {
+                setHostAuthPending(true);
+                router.replace("/host/auth-intro");
+                return;
+              }
+
               router.replace("/host");
             },
           }}
