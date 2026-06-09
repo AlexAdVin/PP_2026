@@ -12,14 +12,17 @@ import {
 
 import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 import ScreenLayout from "@/components/layout/ScreenLayout";
 import ProfilePassport from "@/components/layout/ProfilePassport";
 import LiquidGlassModal from "@/components/modals/LiquidGlassModal";
 import PaymentMethodScreen from "@/app/modal/PaymentMethodScreen";
+import SignOutButton from "@/components/auth/SignOutButton";
 import { useAuthStore } from "@/src/store/authStore";
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const [activeModal, setActiveModal] = useState<null | "payment">(null);
   const [paymentLabel, setPaymentLabel] = useState("Cards & billing");
   const [modalHeightPercent, setModalHeightPercent] = useState(0.55);
@@ -135,6 +138,15 @@ export default function ProfileScreen() {
             icon="settings-outline"
             title="Settings"
             subtitle="Privacy & security"
+          />
+
+          <SignOutButton
+            style={styles.signOutButton}
+            backgroundColor="rgba(255,255,255,0.55)"
+            borderColor="rgba(255,255,255,0.9)"
+            textColor="#0F172A"
+            iconColor="#64748B"
+            onSignedOut={() => router.replace("/")}
           />
         </View>
 
@@ -301,5 +313,8 @@ const styles = StyleSheet.create({
     color: "#0F172A",
     fontWeight: "700",
     fontSize: 14,
+  },
+  signOutButton: {
+    marginTop: 12,
   },
 });

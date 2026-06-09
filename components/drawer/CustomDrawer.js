@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  Dimensions,
   Platform,
   useColorScheme,
 } from "react-native";
@@ -16,10 +15,11 @@ import {
   DrawerItemList,
 } from "@react-navigation/drawer";
 
-import { Feather, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useRouter } from "expo-router";
 import profileStyles from "@/components/styles/profile.styles";
+import SignOutButton from "@/components/auth/SignOutButton";
 
 //const { width } = Dimensions.get("window");
 
@@ -256,8 +256,7 @@ const CustomDrawer = (props) => {
 
       {/* FOOTER */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          activeOpacity={0.8}
+        <SignOutButton
           style={[
             styles.logoutButton,
             {
@@ -265,20 +264,13 @@ const CustomDrawer = (props) => {
               borderColor: colors.cardBorder,
             },
           ]}
-        >
-          <Feather name="log-out" size={17} color={colors.secondaryText} />
-
-          <Text
-            style={[
-              styles.logoutText,
-              {
-                color: colors.primaryText,
-              },
-            ]}
-          >
-            Sign out
-          </Text>
-        </TouchableOpacity>
+          textColor={colors.primaryText}
+          iconColor={colors.secondaryText}
+          onSignedOut={() => {
+            props.navigation?.closeDrawer?.();
+            router.replace("/");
+          }}
+        />
       </View>
     </View>
   );
@@ -394,12 +386,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  logoutText: {
-    marginLeft: 10,
-    fontSize: 15,
-    fontWeight: "600",
-    letterSpacing: 0.1,
   },
 });

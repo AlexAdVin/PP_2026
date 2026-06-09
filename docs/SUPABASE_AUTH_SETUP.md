@@ -8,6 +8,8 @@ This app now uses Supabase Auth as the primary identity system, with a modular c
 
 The auth UI is mounted once at the app root and rendered inside the shared glass modal component. Today it is triggered by the unauthenticated search gate after 3 completed searches. The implementation is structured so Google or other providers can be added by extending the provider config and auth flow component.
 
+The flow is now explicitly step based. Each slide should request one detail only, so email auth progresses through method choice, mode choice, email, password, and then name for sign-up. Future providers should follow the same one-input-per-slide pattern.
+
 ## Environment Variables
 
 Set these in the Expo runtime environment:
@@ -22,7 +24,7 @@ EXPO_PUBLIC_SUPABASE_KEY=your_publishable_key
 Installed in the app:
 
 ```bash
-npm install @supabase/supabase-js expo-apple-authentication expo-crypto
+npm install @supabase/supabase-js expo-apple-authentication expo-crypto lottie-react-native
 ```
 
 ## Minimal User Table
@@ -60,7 +62,7 @@ for each row
 execute function public.set_updated_at();
 ```
 
-For production, prefer the dedicated SQL script instead of manually pasting partial snippets, because email-confirmed sign-ups rely on the database-side sync trigger.
+For production, prefer the dedicated SQL script instead of manually pasting partial snippets, because the database-side sync trigger remains the durable mirror into `public.users`.
 
 ## Row Level Security
 
@@ -99,10 +101,10 @@ with check (auth.uid() = id);
 ### Email Sign-In / Sign-Up
 
 1. Enable Email in Auth > Providers.
-2. Require email confirmation for production.
-3. Configure the email template and redirect handling.
-4. The app supports email/password sign-in and sign-up inside the auth modal.
-5. Confirmed users are written into `public.users` by the SQL trigger from [docs/supabase-users.sql](c:/Users/aaavu/Documents/TBD/PP_2026_Project/PP_2026/docs/supabase-users.sql).
+2. Disable mandatory email confirmation if you want the immediate sign-up flow used by the app.
+3. The app supports step-by-step email/password sign-in and sign-up inside the auth modal.
+4. Sign-up shows a success Lottie animation and then returns the user to the route that triggered auth.
+5. Newly authenticated users are written into `public.users` by the SQL trigger from [docs/supabase-users.sql](c:/Users/aaavu/Documents/TBD/PP_2026_Project/PP_2026/docs/supabase-users.sql) and refreshed client-side after the session is established.
 
 ### Apple Sign-In
 
@@ -119,8 +121,9 @@ with check (auth.uid() = id);
 - `src/adapters/authSearchGateAdapter.ts`: unauthenticated search-count persistence.
 - `components/auth/AuthFlowScreen.tsx`: provider-agnostic auth stepper UI.
 - `components/auth/AuthModalHost.tsx`: renders the auth flow inside `LiquidGlassModal`.
+- `components/auth/SignOutButton.tsx`: shared sign-out control reused by the drawer and profile screen.
 
-The app still upserts the signed-in session profile client-side as an idempotent safety net, but the database trigger is the primary path for email-confirmed account creation.
+The app still upserts the signed-in session profile client-side as an idempotent safety net, while the database trigger remains the primary server-side sync path.
 
 ## Modal Trigger Rules
 
@@ -128,6 +131,7 @@ The app still upserts the signed-in session profile client-side as an idempotent
 - Profile passport: pressing the passport header while signed out opens the auth modal.
 - Pay confirmation: signed-out users can browse and reach the pay screen, but pressing Confirm and pay opens the auth modal.
 - Hosting drawer entry: pressing Hosting Home while signed out opens the hosting intro slides first; when the user finishes or skips those slides, the auth modal opens.
+- Sign-out is available from both the custom drawer and the profile screen through the same reusable button component.
 
 ## Current Trigger Rule
 
@@ -136,6 +140,7 @@ The app still upserts the signed-in session profile client-side as an idempotent
 - After successful authentication, the blocked search resumes automatically.
 - Email is the default selected auth method.
 - Phone OTP and Apple sign-in remain available as secondary methods.
+- The auth footer stays above the keyboard while the user is typing.
 
 ## Next Extensions
 

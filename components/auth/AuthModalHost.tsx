@@ -9,7 +9,7 @@ export default function AuthModalHost() {
   const modalVisible = useAuthStore((state) => state.modalVisible);
   const modalReason = useAuthStore((state) => state.modalReason);
   const closeModal = useAuthStore((state) => state.closeModal);
-  const [heightPercent, setHeightPercent] = useState(0.56);
+  const [heightPercent, setHeightPercent] = useState(0.7);
 
   if (!modalVisible || !modalReason) {
     return null;
@@ -35,18 +35,18 @@ export default function AuthModalHost() {
                 return;
               }
 
-              if (step === "verify") {
-                setHeightPercent(0.48);
+              if (step === "phone-verify") {
+                setHeightPercent(0.5);
                 return;
               }
 
               if (method === "phone") {
-                setHeightPercent(0.6);
+                setHeightPercent(0.66);
                 return;
               }
 
               if (method === "email") {
-                setHeightPercent(0.68);
+                setHeightPercent(step === "email-success" ? 0.58 : 0.78);
                 return;
               }
 
