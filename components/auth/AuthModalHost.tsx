@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
 
-import AuthFlowScreen from "@/components/auth/AuthFlowScreen";
+import AuthFlowScreen from "./AuthFlowScreen";
 import LiquidGlassModal from "@/components/modals/LiquidGlassModal";
 import { useAuthStore } from "@/src/store/authStore";
 
@@ -29,28 +29,33 @@ export default function AuthModalHost() {
           <AuthFlowScreen
             reason={modalReason}
             onClose={closeModal}
-            onStepChange={(step, method) => {
-              if (step === "choose") {
+            onStepChange={(step) => {
+              if (step === "entry") {
+                setHeightPercent(0.72);
+                return;
+              }
+
+              if (step === "verify") {
                 setHeightPercent(0.58);
                 return;
               }
 
-              if (step === "phone-verify") {
-                setHeightPercent(0.5);
+              if (step === "profile-name") {
+                setHeightPercent(0.56);
                 return;
               }
 
-              if (method === "phone") {
-                setHeightPercent(0.66);
+              if (step === "password-fallback" || step === "password-setup") {
+                setHeightPercent(0.68);
                 return;
               }
 
-              if (method === "email") {
-                setHeightPercent(step === "email-success" ? 0.58 : 0.78);
+              if (step === "success") {
+                setHeightPercent(0.56);
                 return;
               }
 
-              setHeightPercent(0.44);
+              setHeightPercent(0.62);
             }}
           />
         </LiquidGlassModal>

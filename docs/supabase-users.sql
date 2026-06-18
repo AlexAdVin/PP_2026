@@ -25,6 +25,54 @@ before update on public.users
 for each row
 execute function public.set_updated_at();
 
+create or replace function public.lookup_auth_identity(identity_value text)
+returns table (identity_type text, exists boolean)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  normalized_value text;
+  normalized_phone text;
+  found_email boolean;
+  found_phone boolean;
+begin
+  normalized_value := lower(trim(identity_value));
+  normalized_phone := regexp_replace(trim(identity_value), '[^0-9+]', '', 'g');
+
+  select exists(
+    select 1
+    from public.users u
+    where lower(coalesce(u.email, '')) = normalized_value
+  ) into found_email;
+
+  if found_email then
+    return query select 'email'::text, true;
+    return;
+  end if;
+
+  select exists(
+    select 1
+    from public.users u
+    where regexp_replace(coalesce(u.phone, ''), '[^0-9+]', '', 'g') = normalized_phone
+  ) into found_phone;
+
+  if found_phone then
+    return query select 'phone'::text, true;
+    return;
+  end if;
+
+  if position('@' in normalized_value) > 0 then
+    return query select 'email'::text, false;
+  else
+    return query select 'phone'::text, false;
+  end if;
+end;
+$$;
+
+revoke all on function public.lookup_auth_identity(text) from public;
+grant execute on function public.lookup_auth_identity(text) to anon, authenticated;
+
 create or replace function public.sync_auth_user_to_public_users()
 returns trigger
 language plpgsql

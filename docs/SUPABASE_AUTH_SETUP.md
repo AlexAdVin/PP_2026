@@ -2,13 +2,14 @@
 
 This app now uses Supabase Auth as the primary identity system, with a modular client-side flow that currently supports:
 
-- Email sign-up and sign-in with password
-- Phone OTP over SMS
+- Single-entry email-or-phone authentication
+- Passwordless OTP verification for email and phone
+- Password fallback for returning email users only
 - Sign in with Apple
 
 The auth UI is mounted once at the app root and rendered inside the shared glass modal component. Today it is triggered by the unauthenticated search gate after 3 completed searches. The implementation is structured so Google or other providers can be added by extending the provider config and auth flow component.
 
-The flow is now explicitly step based. Each slide should request one detail only, so email auth progresses through method choice, mode choice, email, password, and then name for sign-up. Future providers should follow the same one-input-per-slide pattern.
+The flow is now identity led and step based. It starts with one field only: email or phone. The app detects whether the identity already exists and adapts automatically into sign-in or sign-up without asking the user to choose first. Future providers should follow the same one-input-per-slide pattern.
 
 ## Environment Variables
 
@@ -98,13 +99,15 @@ with check (auth.uid() = id);
 3. Set production SMS templates and rate limits.
 4. Add test phone numbers only in non-production environments.
 
-### Email Sign-In / Sign-Up
+### Email OTP / Magic Link
 
 1. Enable Email in Auth > Providers.
-2. Disable mandatory email confirmation if you want the immediate sign-up flow used by the app.
-3. The app supports step-by-step email/password sign-in and sign-up inside the auth modal.
-4. Sign-up shows a success Lottie animation and then returns the user to the route that triggered auth.
-5. Newly authenticated users are written into `public.users` by the SQL trigger from [docs/supabase-users.sql](c:/Users/aaavu/Documents/TBD/PP_2026_Project/PP_2026/docs/supabase-users.sql) and refreshed client-side after the session is established.
+2. Enable email OTP if you want in-app code entry. Magic link also works, but OTP is the default UX assumed by the mobile flow.
+3. Disable mandatory email confirmation if you want immediate sign-up completion in-app.
+4. The app uses a single entry field, auto-detects existing users through the identity lookup RPC, then sends OTP by default.
+5. Returning email users can switch to password only as a fallback path.
+6. New users verify first, then provide only a required name. Optional password setup is deferred to a separate step.
+7. Newly authenticated users are written into `public.users` by the SQL trigger from [docs/supabase-users.sql](c:/Users/aaavu/Documents/TBD/PP_2026_Project/PP_2026/docs/supabase-users.sql) and refreshed client-side after the session is established.
 
 ### Apple Sign-In
 
@@ -117,6 +120,7 @@ with check (auth.uid() = id);
 
 - `src/lib/supabase.ts`: singleton Supabase client with AsyncStorage-backed session persistence.
 - `src/store/authStore.ts`: global auth runtime state, modal control, and session hydration.
+- `src/adapters/authIdentityAdapter.ts`: parses the single entry field and performs anonymous identity lookup through Supabase RPC.
 - `src/adapters/userProfileAdapter.ts`: upsert/read boundary for the `users` table.
 - `src/adapters/authSearchGateAdapter.ts`: unauthenticated search-count persistence.
 - `components/auth/AuthFlowScreen.tsx`: provider-agnostic auth stepper UI.
@@ -138,9 +142,26 @@ The app still upserts the signed-in session profile client-side as an idempotent
 - Unauthenticated users can complete 3 searches.
 - On the 4th search attempt, the auth modal is shown.
 - After successful authentication, the blocked search resumes automatically.
-- Email is the default selected auth method.
-- Phone OTP and Apple sign-in remain available as secondary methods.
+- The default path is a single email-or-phone input plus passwordless OTP.
+- Password appears only as a fallback for returning email accounts.
+- Apple sign-in remains available as an optional SSO path.
 - The auth footer stays above the keyboard while the user is typing.
+
+## Step-by-Step Flow
+
+1. Entry: one field for email or phone, plus optional SSO.
+2. Adaptive lookup: the app calls `public.lookup_auth_identity()` through `authIdentityAdapter`.
+3. Returning user: send OTP immediately, then allow password fallback only if the identity is an email.
+4. New user: send OTP immediately, verify, then ask for required name only.
+5. Optional password: available after the required name step, but skipped by default.
+6. Success: play the Lottie confirmation and route back to the trigger surface.
+
+## Security Notes
+
+- OTP is the primary mobile sign-in path for both email and phone.
+- Password is never shown up front and is only offered after account detection for returning email users.
+- The lookup RPC exposes only whether an identity exists, not profile data.
+- Passkeys and MFA should be added behind separate capability adapters when native mobile support is wired in.
 
 ## Next Extensions
 

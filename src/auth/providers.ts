@@ -1,31 +1,35 @@
 import { Ionicons } from "@expo/vector-icons";
 
-export type AuthMethodKey = "email" | "phone" | "apple";
+export type AuthMethodKey = "apple" | "google" | "microsoft";
 
 export type AuthMethodConfig = {
   key: AuthMethodKey;
   title: string;
   subtitle: string;
   icon: keyof typeof Ionicons.glyphMap;
+  enabled: boolean;
 };
 
 export const AUTH_METHODS: AuthMethodConfig[] = [
   {
-    key: "email",
-    title: "Email",
-    subtitle: "Sign up or sign in with email and password",
-    icon: "mail-outline",
-  },
-  {
-    key: "phone",
-    title: "Phone OTP",
-    subtitle: "Sign in with a one-time SMS code",
-    icon: "chatbubble-ellipses-outline",
-  },
-  {
     key: "apple",
-    title: "Sign in with Apple",
-    subtitle: "Private, fast authentication on Apple devices",
+    title: "Apple",
+    subtitle: "Fast private sign in on Apple devices",
     icon: "logo-apple",
+    enabled: true,
+  },
+  {
+    key: "google",
+    title: "Google",
+    subtitle: "Adapter slot ready for Google OAuth",
+    icon: "logo-google",
+    enabled: false,
+  },
+  {
+    key: "microsoft",
+    title: "Microsoft",
+    subtitle: "Adapter slot ready for Microsoft OAuth",
+    icon: "logo-windows",
+    enabled: false,
   },
 ];

@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
 import * as Crypto from "expo-crypto";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -20,22 +19,20 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AUTH_METHODS, type AuthMethodKey } from "@/src/auth/providers";
+import { authIdentityAdapter, type IdentityKind } from "@/src/adapters/authIdentityAdapter";
+import { userProfileAdapter } from "@/src/adapters/userProfileAdapter";
 import { supabase } from "@/src/lib/supabase";
 import { useAuthStore, type AuthModalReason } from "@/src/store/authStore";
 
 type AuthStep =
-  | "choose"
-  | "email-mode"
-  | "email-entry"
-  | "email-password"
-  | "email-name"
-  | "email-success"
-  | "phone-name"
-  | "phone-entry"
-  | "phone-verify"
-  | "apple-info";
+  | "entry"
+  | "verify"
+  | "profile-name"
+  | "password-fallback"
+  | "password-setup"
+  | "success";
 
-type EmailMode = "sign-in" | "sign-up";
+type AuthIntent = "sign-in" | "sign-up" | null;
 
 type Props = {
   reason: AuthModalReason;
@@ -46,35 +43,34 @@ type Props = {
 export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [selectedMethod, setSelectedMethod] = useState<AuthMethodKey>("email");
-  const [step, setStep] = useState<AuthStep>("choose");
-  const [emailMode, setEmailMode] = useState<EmailMode>("sign-in");
-  const [email, setEmail] = useState("");
+  const setHostAuthPending = useAuthStore((state) => state.setHostAuthPending);
+  const [step, setStep] = useState<AuthStep>("entry");
+  const [identityInput, setIdentityInput] = useState("");
+  const [identityKind, setIdentityKind] = useState<IdentityKind | null>(null);
+  const [normalizedIdentity, setNormalizedIdentity] = useState("");
+  const [intent, setIntent] = useState<AuthIntent>(null);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [otpCode, setOtpCode] = useState("");
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [busy, setBusy] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [successText, setSuccessText] = useState<string | null>(null);
-  const setHostAuthPending = useAuthStore((state) => state.setHostAuthPending);
 
-  const selectedConfig = useMemo(
-    () => AUTH_METHODS.find((method) => method.key === selectedMethod),
-    [selectedMethod],
+  const enabledProviders = useMemo(
+    () => AUTH_METHODS.filter((method) => method.enabled),
+    [],
   );
 
-  const emailHasRequiredShape = /\S+@\S+\.\S+/.test(email.trim());
   const passwordHasMinLength = password.length >= 8;
   const passwordHasLetter = /[A-Za-z]/.test(password);
   const passwordHasNumber = /\d/.test(password);
   const passwordIsStrong = passwordHasMinLength && passwordHasLetter && passwordHasNumber;
 
-  const setFlowStep = (nextStep: AuthStep) => {
+  const setFlowStep = (nextStep: AuthStep, method?: AuthMethodKey) => {
     setStep(nextStep);
-    onStepChange?.(nextStep, selectedMethod);
+    onStepChange?.(nextStep, method);
   };
 
   useEffect(() => {
@@ -97,14 +93,6 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
     };
   }, []);
 
-  const handleChooseMethod = (method: AuthMethodKey) => {
-    setSelectedMethod(method);
-    setErrorText(null);
-    setSuccessText(null);
-    setShowPassword(false);
-    onStepChange?.("choose", method);
-  };
-
   const completeSuccessfulAuth = useCallback(() => {
     if (reason === "host-required") {
       setHostAuthPending(false);
@@ -123,7 +111,7 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
   }, [onClose, reason, router, setHostAuthPending]);
 
   useEffect(() => {
-    if (step !== "email-success") {
+    if (step !== "success") {
       return;
     }
 
@@ -134,9 +122,96 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
     return () => clearTimeout(timeout);
   }, [completeSuccessfulAuth, step]);
 
-  const submitEmailSignIn = async () => {
+  const sendPasswordlessCode = async (
+    kind: IdentityKind,
+    normalized: string,
+    shouldCreateUser: boolean,
+  ) => {
+    if (kind === "email") {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: normalized,
+        options: { shouldCreateUser },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: normalized,
+      options: { shouldCreateUser },
+    });
+
+    if (error) {
+      throw error;
+    }
+  };
+
+  const verifyPasswordlessCode = async () => {
+    if (!identityKind) {
+      throw new Error("Enter your email or phone number first.");
+    }
+
+    const verificationPayload =
+      identityKind === "email"
+        ? {
+            email: normalizedIdentity,
+            token: verificationCode.trim(),
+            type: "email" as const,
+          }
+        : {
+            phone: normalizedIdentity,
+            token: verificationCode.trim(),
+            type: "sms" as const,
+          };
+
+    const { error } = await supabase.auth.verifyOtp(verificationPayload);
+
+    if (error) {
+      throw error;
+    }
+  };
+
+  const finalizeProfile = async () => {
+    const updatePayload = password
+      ? {
+          password,
+          data: { display_name: displayName.trim() },
+        }
+      : {
+          data: { display_name: displayName.trim() },
+        };
+
+    const { data, error } = await supabase.auth.updateUser(updatePayload);
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data.user) {
+      throw new Error("Unable to finish setting up your account.");
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    if (sessionData.session) {
+      await userProfileAdapter.upsertForSession(sessionData.session);
+    }
+
+    setSuccessText("You are signed in.");
+    setFlowStep("success");
+  };
+
+  const submitPasswordFallback = async () => {
+    if (identityKind !== "email") {
+      throw new Error("Password fallback is available only for email accounts.");
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: normalizedIdentity,
       password,
     });
 
@@ -147,272 +222,179 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
     completeSuccessfulAuth();
   };
 
-  const submitEmailSignUp = async () => {
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        data: {
-          display_name: displayName.trim(),
-        },
-      },
-    });
+  const handleIdentitySubmit = async () => {
+    const lookup = await authIdentityAdapter.lookup(identityInput);
+    const nextIntent = lookup.exists ? "sign-in" : "sign-up";
 
-    if (error) {
-      throw error;
-    }
+    setIdentityKind(lookup.kind);
+    setNormalizedIdentity(lookup.normalizedIdentity);
+    setIntent(nextIntent);
 
-    if (!data.session) {
-      throw new Error(
-        "Email confirmation is still enabled in Supabase. Disable it to use instant sign-up.",
+    await sendPasswordlessCode(lookup.kind, lookup.normalizedIdentity, !lookup.exists);
+
+    setSuccessText(
+      lookup.kind === "email"
+        ? "We sent a one-time email code. If your Supabase template is configured for magic link, that link also works."
+        : "We sent a one-time SMS code.",
+    );
+
+    setFlowStep("verify");
+  };
+
+  const handleAppleSignIn = async () => {
+    setErrorText(null);
+    setSuccessText(null);
+    setBusy(true);
+
+    try {
+      if (Platform.OS !== "ios") {
+        throw new Error("Apple sign-in is available only on iPhone and iPad.");
+      }
+
+      const available = await AppleAuthentication.isAvailableAsync();
+
+      if (!available) {
+        throw new Error("Apple sign-in is not available on this device.");
+      }
+
+      const rawNonce = Crypto.randomUUID();
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce,
       );
-    }
 
-    setSuccessText("Account created successfully.");
-    setFlowStep("email-success");
+      const credential = await AppleAuthentication.signInAsync({
+        nonce: hashedNonce,
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        throw new Error("Apple did not return an identity token.");
+      }
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: credential.identityToken,
+        nonce: rawNonce,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      completeSuccessfulAuth();
+    } catch (error) {
+      if (error instanceof Error && error.message.toLowerCase().includes("canceled")) {
+        return;
+      }
+
+      setErrorText(error instanceof Error ? error.message : "Unable to sign in with Apple.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleContinue = async () => {
     setErrorText(null);
-    setSuccessText(null);
 
-    if (step === "choose") {
-      if (selectedMethod === "email") {
-        setFlowStep("email-mode");
-        return;
-      }
-
-      if (selectedMethod === "phone") {
-        setFlowStep("phone-name");
-        return;
-      }
-
-      setFlowStep("apple-info");
+    if (step === "success") {
       return;
     }
 
-    if (step === "email-mode") {
-      setFlowStep("email-entry");
-      return;
-    }
+    setBusy(true);
 
-    if (step === "email-entry") {
-      setFlowStep("email-password");
-      return;
-    }
+    try {
+      if (step === "entry") {
+        await handleIdentitySubmit();
+      } else if (step === "verify") {
+        await verifyPasswordlessCode();
 
-    if (step === "phone-name") {
-      setFlowStep("phone-entry");
-      return;
-    }
-
-    if (selectedMethod === "email") {
-      setBusy(true);
-      try {
-        if (step === "email-password") {
-          if (emailMode === "sign-in") {
-            await submitEmailSignIn();
-          } else {
-            setFlowStep("email-name");
-          }
-        } else if (step === "email-name") {
-          await submitEmailSignUp();
-        }
-      } catch (error) {
-        setErrorText(
-          error instanceof Error ? error.message : "Unable to authenticate with email.",
-        );
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
-
-    if (selectedMethod === "phone") {
-      if (step === "phone-entry") {
-        setBusy(true);
-        try {
-          const { error } = await supabase.auth.signInWithOtp({
-            phone,
-            options: {
-              shouldCreateUser: true,
-              data: {
-                display_name: displayName.trim(),
-              },
-            },
-          });
-
-          if (error) {
-            throw error;
-          }
-
-          setFlowStep("phone-verify");
-        } catch (error) {
-          setErrorText(
-            error instanceof Error ? error.message : "Unable to send verification code.",
-          );
-        } finally {
-          setBusy(false);
-        }
-        return;
-      }
-
-      if (step === "phone-verify") {
-        setBusy(true);
-        try {
-          const { error } = await supabase.auth.verifyOtp({
-            phone,
-            token: otpCode,
-            type: "sms",
-          });
-
-          if (error) {
-            throw error;
-          }
-
+        if (intent === "sign-up") {
+          setSuccessText(null);
+          setFlowStep("profile-name");
+        } else {
           completeSuccessfulAuth();
-        } catch (error) {
-          setErrorText(
-            error instanceof Error ? error.message : "Unable to verify SMS code.",
-          );
-        } finally {
-          setBusy(false);
         }
-        return;
+      } else if (step === "profile-name" || step === "password-setup") {
+        await finalizeProfile();
+      } else if (step === "password-fallback") {
+        await submitPasswordFallback();
       }
-    }
-
-    if (selectedMethod === "apple" && step === "apple-info") {
-      setBusy(true);
-      try {
-        if (Platform.OS !== "ios") {
-          throw new Error("Apple sign-in is only available on iOS devices.");
-        }
-
-        const credentialState = await AppleAuthentication.isAvailableAsync();
-
-        if (!credentialState) {
-          throw new Error("Apple sign-in is not available on this device.");
-        }
-
-        const rawNonce = Crypto.randomUUID();
-        const hashedNonce = await Crypto.digestStringAsync(
-          Crypto.CryptoDigestAlgorithm.SHA256,
-          rawNonce,
-        );
-
-        const credential = await AppleAuthentication.signInAsync({
-          nonce: hashedNonce,
-          requestedScopes: [
-            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-            AppleAuthentication.AppleAuthenticationScope.EMAIL,
-          ],
-        });
-
-        if (!credential.identityToken) {
-          throw new Error("Apple did not return an identity token.");
-        }
-
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: "apple",
-          token: credential.identityToken,
-          nonce: rawNonce,
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        completeSuccessfulAuth();
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          error.message.toLowerCase().includes("canceled")
-        ) {
-          return;
-        }
-
-        setErrorText(
-          error instanceof Error ? error.message : "Unable to sign in with Apple.",
-        );
-      } finally {
-        setBusy(false);
-      }
+    } catch (error) {
+      setErrorText(
+        error instanceof Error ? error.message : "Unable to continue authentication.",
+      );
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleBack = () => {
     setErrorText(null);
     setSuccessText(null);
-    setShowPassword(false);
 
     switch (step) {
-      case "email-mode":
-      case "phone-name":
-      case "apple-info":
-        setFlowStep("choose");
+      case "verify":
+      case "password-fallback":
+        setFlowStep("entry");
         break;
-      case "email-entry":
-        setFlowStep("email-mode");
+      case "profile-name":
+        setFlowStep("verify");
         break;
-      case "email-password":
-        setFlowStep("email-entry");
+      case "password-setup":
+        setFlowStep("profile-name");
         break;
-      case "email-name":
-        setFlowStep("email-password");
-        break;
-      case "phone-entry":
-        setFlowStep("phone-name");
-        break;
-      case "phone-verify":
-        setFlowStep("phone-entry");
+      default:
         break;
     }
   };
 
+  const handlePasswordFallbackPress = () => {
+    setErrorText(null);
+    setSuccessText(null);
+    setPassword("");
+    setShowPassword(false);
+    setFlowStep("password-fallback");
+  };
+
+  const handleOptionalPasswordPress = () => {
+    setErrorText(null);
+    setSuccessText(null);
+    setPassword("");
+    setShowPassword(false);
+    setFlowStep("password-setup");
+  };
+
   const canContinue = useMemo(() => {
-    if (step === "choose" || step === "email-mode" || step === "apple-info") {
-      return true;
+    if (step === "entry") {
+      return identityInput.trim().length >= 4;
     }
 
-    if (step === "email-entry") {
-      return emailHasRequiredShape;
+    if (step === "verify") {
+      return verificationCode.trim().length >= 6;
     }
 
-    if (step === "email-password") {
-      return emailMode === "sign-in" ? passwordHasMinLength : passwordIsStrong;
-    }
-
-    if (step === "email-name") {
+    if (step === "profile-name") {
       return displayName.trim().length >= 2;
     }
 
-    if (step === "phone-name") {
-      return displayName.trim().length >= 2;
+    if (step === "password-fallback") {
+      return password.length >= 8;
     }
 
-    if (step === "phone-entry") {
-      return phone.trim().length >= 8;
-    }
-
-    if (step === "phone-verify") {
-      return otpCode.trim().length >= 6;
+    if (step === "password-setup") {
+      return displayName.trim().length >= 2 && passwordIsStrong;
     }
 
     return false;
-  }, [
-    displayName,
-    emailHasRequiredShape,
-    emailMode,
-    otpCode,
-    passwordHasMinLength,
-    passwordIsStrong,
-    phone,
-    step,
-  ]);
+  }, [displayName, identityInput, password, passwordIsStrong, step, verificationCode]);
 
-  const showFooter = step !== "email-success";
   const footerOffset = Platform.OS === "android" ? keyboardOffset : 0;
+  const showBack = step !== "entry" && step !== "success";
+  const showFooter = step !== "success";
 
   return (
     <KeyboardAvoidingView
@@ -425,179 +407,157 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>{getStepTitle(step, emailMode, selectedConfig?.title)}</Text>
-
-        <Text style={styles.subtitle}>{getStepSubtitle(step, emailMode, phone)}</Text>
-
+        <Text style={styles.title}>{getStepTitle(step, intent)}</Text>
+        <Text style={styles.subtitle}>
+          {getStepSubtitle(step, normalizedIdentity, intent)}
+        </Text>
         <Text style={styles.reasonText}>{getReasonCopy(reason)}</Text>
 
-        <View style={styles.formBlock}>
-          {step === "choose" && (
-            <View>
-              {AUTH_METHODS.map((method) => (
-                <TouchableOpacity
-                  key={method.key}
-                  activeOpacity={0.9}
-                  onPress={() => handleChooseMethod(method.key)}
-                >
-                  <View style={styles.option}>
-                    <BlurView
-                      intensity={35}
-                      tint="light"
-                      style={[
-                        styles.optionBlur,
-                        selectedMethod === method.key && styles.optionSelected,
-                      ]}
-                    >
-                      <View style={styles.optionContent}>
-                        <Ionicons name={method.icon} size={22} color="#0F172A" />
-                        <View style={styles.optionTextWrap}>
-                          <Text style={styles.optionTitle}>{method.title}</Text>
-                          <Text style={styles.optionSubtitle}>{method.subtitle}</Text>
-                        </View>
-                        {selectedMethod === method.key && <View style={styles.selectedDot} />}
-                      </View>
-                    </BlurView>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {step === "email-mode" && (
-            <View style={styles.form}>
-              <Text style={styles.stepLabel}>Choose your email flow</Text>
-              <View style={styles.modeSwitchRow}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={[styles.modeChip, emailMode === "sign-in" && styles.modeChipActive]}
-                  onPress={() => setEmailMode("sign-in")}
-                >
-                  <Text style={[styles.modeChipText, emailMode === "sign-in" && styles.modeChipTextActive]}>
-                    Sign in
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={[styles.modeChip, emailMode === "sign-up" && styles.modeChipActive]}
-                  onPress={() => setEmailMode("sign-up")}
-                >
-                  <Text style={[styles.modeChipText, emailMode === "sign-up" && styles.modeChipTextActive]}>
-                    Create account
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {step === "email-entry" && (
+        {step === "entry" && (
+          <View style={styles.formBlock}>
             <Field
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="anne@example.com"
+              label="Email or phone"
+              value={identityInput}
+              onChangeText={setIdentityInput}
+              placeholder="anne@example.com or +45 12 34 56 78"
               keyboardType="email-address"
               autoFocus
             />
-          )}
 
-          {step === "email-password" && (
-            <View style={styles.form}>
-              <Field
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Enter your password"
-                secureTextEntry={!showPassword}
-                autoFocus
-                rightAccessory={
-                  <TouchableOpacity onPress={() => setShowPassword((current) => !current)}>
-                    <Ionicons
-                      name={showPassword ? "eye-off-outline" : "eye-outline"}
-                      size={20}
-                      color="#64748B"
-                    />
+            <Text style={styles.helperText}>
+              We detect returning users automatically and default to one-time verification first.
+            </Text>
+
+            {enabledProviders.length > 0 && (
+              <View style={styles.ssoSection}>
+                <Text style={styles.ssoLabel}>Or continue with</Text>
+
+                {enabledProviders.map((provider) => (
+                  <TouchableOpacity
+                    key={provider.key}
+                    activeOpacity={0.88}
+                    style={styles.ssoButton}
+                    onPress={() => {
+                      if (provider.key === "apple") {
+                        void handleAppleSignIn();
+                      }
+                    }}
+                  >
+                    <Ionicons name={provider.icon} size={18} color="#0F172A" />
+                    <Text style={styles.ssoButtonText}>Continue with {provider.title}</Text>
                   </TouchableOpacity>
-                }
-              />
-              <View style={styles.passwordRulesCard}>
-                <Text style={styles.passwordRulesTitle}>Password guidance</Text>
-                <PasswordRule label="At least 8 characters" met={passwordHasMinLength} />
-                <PasswordRule label="Contains a letter" met={passwordHasLetter} />
-                <PasswordRule label="Contains a number" met={passwordHasNumber} />
+                ))}
               </View>
-            </View>
-          )}
+            )}
+          </View>
+        )}
 
-          {step === "email-name" && (
+        {step === "verify" && (
+          <View style={styles.formBlock}>
             <Field
-              label="Full name"
-              value={displayName}
-              onChangeText={setDisplayName}
-              placeholder="Anne Larsen"
-              autoFocus
-            />
-          )}
-
-          {step === "email-success" && (
-            <View style={styles.successWrap}>
-              <LottieView
-                autoPlay
-                loop={false}
-                source={require("@/assets/lottie/done/Comp 1.json")}
-                style={styles.successAnimation}
-              />
-              <Text style={styles.successTitle}>Account created</Text>
-              <Text style={styles.successBody}>
-                Your ParkingPlanet account is ready. Taking you back now.
-              </Text>
-            </View>
-          )}
-
-          {step === "phone-name" && (
-            <Field
-              label="Full name"
-              value={displayName}
-              onChangeText={setDisplayName}
-              placeholder="Anne Larsen"
-              autoFocus
-            />
-          )}
-
-          {step === "phone-entry" && (
-            <Field
-              label="Phone number"
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+45 12 34 56 78"
-              keyboardType="phone-pad"
-              autoFocus
-            />
-          )}
-
-          {step === "phone-verify" && (
-            <Field
-              label="SMS code"
-              value={otpCode}
-              onChangeText={setOtpCode}
+              label={identityKind === "email" ? "Email code" : "SMS code"}
+              value={verificationCode}
+              onChangeText={setVerificationCode}
               placeholder="123456"
               keyboardType="number-pad"
               autoFocus
             />
-          )}
 
-          {step === "apple-info" && (
-            <View style={styles.infoCard}>
-              <Text style={styles.infoTitle}>{selectedConfig?.title}</Text>
-              <Text style={styles.infoBody}>
-                Apple sign-in stays step-based as well. This slide explains the provider before launching the native Apple sheet.
-              </Text>
+            {identityKind === "email" && intent === "sign-in" && (
+              <TouchableOpacity activeOpacity={0.8} onPress={handlePasswordFallbackPress}>
+                <Text style={styles.inlineAction}>Use password instead</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {step === "profile-name" && (
+          <View style={styles.formBlock}>
+            <Field
+              label="Your name"
+              value={displayName}
+              onChangeText={setDisplayName}
+              placeholder="Anne Larsen"
+              autoFocus
+            />
+
+            <TouchableOpacity activeOpacity={0.8} onPress={handleOptionalPasswordPress}>
+              <Text style={styles.inlineAction}>Add an optional password</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {step === "password-fallback" && (
+          <View style={styles.formBlock}>
+            <Field
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Enter your password"
+              secureTextEntry={!showPassword}
+              autoFocus
+              rightAccessory={
+                <TouchableOpacity onPress={() => setShowPassword((current) => !current)}>
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#64748B"
+                  />
+                </TouchableOpacity>
+              }
+            />
+            <Text style={styles.helperText}>
+              Password is fallback only. One-time codes remain the default sign-in path.
+            </Text>
+          </View>
+        )}
+
+        {step === "password-setup" && (
+          <View style={styles.formBlock}>
+            <Field
+              label="Optional password"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Create a password"
+              secureTextEntry={!showPassword}
+              autoFocus
+              rightAccessory={
+                <TouchableOpacity onPress={() => setShowPassword((current) => !current)}>
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#64748B"
+                  />
+                </TouchableOpacity>
+              }
+            />
+
+            <View style={styles.passwordRulesCard}>
+              <Text style={styles.passwordRulesTitle}>Password guidance</Text>
+              <PasswordRule label="At least 8 characters" met={passwordHasMinLength} />
+              <PasswordRule label="Contains a letter" met={passwordHasLetter} />
+              <PasswordRule label="Contains a number" met={passwordHasNumber} />
             </View>
-          )}
-        </View>
+          </View>
+        )}
+
+        {step === "success" && (
+          <View style={styles.successWrap}>
+            <LottieView
+              autoPlay
+              loop={false}
+              source={require("@/assets/lottie/done/Comp 1.json")}
+              style={styles.successAnimation}
+            />
+            <Text style={styles.successTitle}>You&apos;re in</Text>
+            <Text style={styles.successBody}>Finishing sign-in and taking you back now.</Text>
+          </View>
+        )}
 
         {errorText && <Text style={styles.errorText}>{errorText}</Text>}
-        {successText && step !== "email-success" && <Text style={styles.successText}>{successText}</Text>}
+        {successText && step !== "success" && (
+          <Text style={styles.successText}>{successText}</Text>
+        )}
       </ScrollView>
 
       {showFooter && (
@@ -609,7 +569,7 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
             },
           ]}
         >
-          {step !== "choose" && (
+          {showBack && (
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleBack}
@@ -629,7 +589,7 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
             {busy ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>{getContinueLabel(step, emailMode)}</Text>
+              <Text style={styles.buttonText}>{getContinueLabel(step, intent)}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -722,77 +682,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   formBlock: {
-    minHeight: 240,
-  },
-  form: {
-    marginBottom: 12,
-  },
-  stepLabel: {
-    color: "#0F172A",
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-  modeSwitchRow: {
-    flexDirection: "row",
-    marginBottom: 16,
-    gap: 10,
-  },
-  modeChip: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: "rgba(15,23,42,0.06)",
-  },
-  modeChipActive: {
-    backgroundColor: "#0F172A",
-  },
-  modeChipText: {
-    color: "#0F172A",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  modeChipTextActive: {
-    color: "#FFFFFF",
-  },
-  option: {
-    marginBottom: 14,
-  },
-  optionBlur: {
-    borderRadius: 26,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
-    backgroundColor: "rgba(255,255,255,0.45)",
-  },
-  optionSelected: {
-    borderColor: "rgba(15,23,42,0.2)",
-  },
-  optionContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  optionTextWrap: {
-    marginLeft: 16,
-    flex: 1,
-  },
-  optionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#0F172A",
-  },
-  optionSubtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "#64748B",
-  },
-  selectedDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: "#0F172A",
+    minHeight: 250,
   },
   field: {
     marginBottom: 16,
@@ -822,6 +712,43 @@ const styles = StyleSheet.create({
   inputAccessory: {
     marginLeft: 12,
   },
+  helperText: {
+    color: "#64748B",
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  ssoSection: {
+    marginTop: 22,
+  },
+  ssoLabel: {
+    color: "#475569",
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  ssoButton: {
+    height: 54,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.7)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.92)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  ssoButtonText: {
+    marginLeft: 10,
+    color: "#0F172A",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  inlineAction: {
+    marginTop: 4,
+    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "700",
+  },
   passwordRulesCard: {
     borderRadius: 22,
     padding: 16,
@@ -848,25 +775,6 @@ const styles = StyleSheet.create({
   passwordRuleTextMet: {
     color: "#15803D",
   },
-  infoCard: {
-    marginBottom: 24,
-    borderRadius: 24,
-    padding: 20,
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
-  },
-  infoTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0F172A",
-  },
-  infoBody: {
-    marginTop: 10,
-    fontSize: 14,
-    lineHeight: 22,
-    color: "#475569",
-  },
   errorText: {
     marginBottom: 16,
     color: "#B91C1C",
@@ -876,6 +784,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: "#15803D",
     fontSize: 13,
+    lineHeight: 20,
   },
   successWrap: {
     alignItems: "center",
@@ -957,76 +866,53 @@ function getReasonCopy(reason: AuthModalReason) {
   }
 }
 
-function getStepTitle(step: AuthStep, emailMode: EmailMode, selectedTitle?: string) {
+function getStepTitle(step: AuthStep, intent: AuthIntent) {
   switch (step) {
-    case "email-mode":
-      return "Email authentication";
-    case "email-entry":
-      return "Enter your email";
-    case "email-password":
-      return emailMode === "sign-in" ? "Enter your password" : "Create a password";
-    case "email-name":
+    case "verify":
+      return intent === "sign-up" ? "Verify your contact" : "Check your code";
+    case "profile-name":
       return "What should we call you?";
-    case "email-success":
+    case "password-fallback":
+      return "Use your password";
+    case "password-setup":
+      return "Add a password";
+    case "success":
       return "Success";
-    case "phone-name":
-      return "Start with your name";
-    case "phone-entry":
-      return "Enter your phone number";
-    case "phone-verify":
-      return "Verify code";
-    case "apple-info":
-      return selectedTitle ?? "Apple sign in";
-    case "choose":
+    case "entry":
     default:
-      return "Authenticate";
+      return "Enter your email or phone";
   }
 }
 
-function getStepSubtitle(step: AuthStep, emailMode: EmailMode, phone: string) {
+function getStepSubtitle(step: AuthStep, normalizedIdentity: string, intent: AuthIntent) {
   switch (step) {
-    case "email-mode":
-      return "Choose whether you are signing in or creating a new account. Each next slide asks for one detail only.";
-    case "email-entry":
-      return "We request your email first so the rest of the flow can stay focused and step-based.";
-    case "email-password":
-      return emailMode === "sign-in"
-        ? "Enter the password for this email address."
-        : "Use a strong password with at least 8 characters, one letter, and one number.";
-    case "email-name":
-      return "One final step. Your display name will be stored in your user profile.";
-    case "email-success":
-      return "Your account has been created and signed in.";
-    case "phone-name":
-      return "Phone auth is also progressive. We start with your name before asking for the number.";
-    case "phone-entry":
-      return "We will send a one-time code by SMS.";
-    case "phone-verify":
-      return `Enter the code sent to ${phone}.`;
-    case "apple-info":
-      return "Continue with the secure Apple sign-in sheet.";
-    case "choose":
+    case "verify":
+      return `Enter the code sent to ${normalizedIdentity}.`;
+    case "profile-name":
+      return "That is the only required profile field. Preferences and optional details can wait.";
+    case "password-fallback":
+      return "Use password only when you cannot access the one-time code flow.";
+    case "password-setup":
+      return "This is optional. Passwordless sign-in stays available either way.";
+    case "success":
+      return intent === "sign-up" ? "Your new account is ready." : "You are signed in.";
+    case "entry":
     default:
-      return "Pick a sign-in method to continue and sync your profile.";
+      return "We detect returning users automatically and default to passwordless verification first.";
   }
 }
 
-function getContinueLabel(step: AuthStep, emailMode: EmailMode) {
+function getContinueLabel(step: AuthStep, intent: AuthIntent) {
   switch (step) {
-    case "phone-entry":
-      return "Send code";
-    case "phone-verify":
-      return "Verify";
-    case "apple-info":
-      return "Continue with Apple";
-    case "email-password":
-      return emailMode === "sign-in" ? "Sign in" : "Continue";
-    case "email-name":
-      return "Create account";
-    case "choose":
-    case "email-mode":
-    case "email-entry":
-    case "phone-name":
+    case "verify":
+      return intent === "sign-up" ? "Verify and continue" : "Verify";
+    case "profile-name":
+      return "Finish setup";
+    case "password-fallback":
+      return "Sign in with password";
+    case "password-setup":
+      return "Save password";
+    case "entry":
     default:
       return "Continue";
   }
