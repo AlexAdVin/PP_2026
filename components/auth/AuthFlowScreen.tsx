@@ -175,6 +175,35 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
     }
   };
 
+  const shouldCollectName = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData.session;
+
+    if (!session) {
+      throw new Error("Your session did not finish loading. Try again.");
+    }
+
+    const profile = await userProfileAdapter.fetchById(session.user.id);
+    const profileName = profile?.displayName?.trim().toLowerCase() ?? "";
+    const fallbackEmail = session.user.email?.trim().toLowerCase() ?? "";
+    const fallbackPhone = session.user.phone?.trim().toLowerCase() ?? "";
+    const normalized = normalizedIdentity.trim().toLowerCase();
+
+    if (!profile) {
+      return true;
+    }
+
+    if (!profileName) {
+      return true;
+    }
+
+    if (profileName === fallbackEmail || profileName === fallbackPhone || profileName === normalized) {
+      return true;
+    }
+
+    return false;
+  };
+
   const finalizeProfile = async () => {
     const updatePayload = password
       ? {
@@ -282,6 +311,12 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
       });
 
       if (error) {
+        if (error.message.includes('Provider (issuer "https://appleid.apple.com") is not enabled')) {
+          throw new Error(
+            "Apple sign-in succeeded on the device, but Apple is not enabled in Supabase Auth providers. Configure Apple in Supabase with your Service ID, Team ID, Key ID, private key, and the same iOS bundle identifier used by Expo.",
+          );
+        }
+
         throw error;
       }
 
@@ -312,7 +347,9 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
       } else if (step === "verify") {
         await verifyPasswordlessCode();
 
-        if (intent === "sign-up") {
+        const needsName = await shouldCollectName();
+
+        if (needsName) {
           setSuccessText(null);
           setFlowStep("profile-name");
         } else {
@@ -325,7 +362,9 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
       }
     } catch (error) {
       setErrorText(
-        error instanceof Error ? error.message : "Unable to continue authentication.",
+        error instanceof Error
+          ? error.message
+          : "Unable to continue authentication. Check Supabase OTP provider setup and the optional identity lookup RPC.",
       );
     } finally {
       setBusy(false);

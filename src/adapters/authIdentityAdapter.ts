@@ -59,6 +59,20 @@ export async function lookupAuthIdentity(identity: string): Promise<IdentityLook
   });
 
   if (error) {
+    const rpcMissing =
+      error.code === "PGRST202" ||
+      error.message.toLowerCase().includes("lookup_auth_identity") ||
+      error.message.toLowerCase().includes("schema cache");
+
+    if (rpcMissing) {
+      return {
+        identity,
+        normalizedIdentity,
+        kind,
+        exists: false,
+      };
+    }
+
     throw error;
   }
 

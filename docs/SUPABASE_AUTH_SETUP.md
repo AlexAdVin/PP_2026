@@ -113,8 +113,12 @@ with check (auth.uid() = id);
 
 1. Enable Apple in Auth > Providers.
 2. Configure Service ID, Team ID, Key ID, and private key in Supabase.
-3. Add the iOS bundle identifier used by Expo/EAS.
-4. Test on a physical iOS device because Apple auth is not available on Android.
+3. Add the exact iOS bundle identifier used by Expo/EAS.
+4. In Expo config, enable `ios.usesAppleSignIn` and include the `expo-apple-authentication` plugin.
+5. Rebuild the iOS app after enabling the capability so the entitlement is present.
+6. Test on a physical iOS device because Apple auth is not available on Android.
+
+If Face ID succeeds but Supabase returns `Provider (issuer "https://appleid.apple.com") is not enabled`, the device-side Apple login is already working. The missing piece is the Supabase Apple provider configuration.
 
 ## App Architecture
 
@@ -155,6 +159,8 @@ The app still upserts the signed-in session profile client-side as an idempotent
 4. New user: send OTP immediately, verify, then ask for required name only.
 5. Optional password: available after the required name step, but skipped by default.
 6. Success: play the Lottie confirmation and route back to the trigger surface.
+
+If the lookup RPC has not been deployed yet, the flow still works. It falls back to OTP-first behavior and decides whether onboarding is needed after verification by inspecting the signed-in profile.
 
 ## Security Notes
 
