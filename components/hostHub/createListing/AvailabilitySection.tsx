@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -13,11 +12,19 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Entypo } from "@expo/vector-icons";
+import LiquidGlassModal from "@/components/modals/LiquidGlassModal";
 import styles from "@/global/style/styles";
-import stylesBtns from "@/global/style/stylesBtns";
 
 const { width } = Dimensions.get("screen");
 const EMPTY_AVAILABILITY: any[] = [];
+const DEFAULT_END_MONTHS = 12;
+
+type AvailabilityDayEntry = {
+  day: string;
+  bool?: boolean;
+  sT?: Date | string;
+  eT?: Date | string;
+};
 
 type AvailabilitySectionProps = {
   checkedLot: number;
@@ -34,30 +41,74 @@ type AvailabilitySectionProps = {
   ) => void;
 };
 
-const dayOptions = [
-  { title: "Weekdays", subtitle: "Monday - Friday", target: "Weekdays" },
-  { title: "Weekend", subtitle: "Saturday & Sunday", target: "Weekend" },
-  { title: "Custom", subtitle: "Tap to edit", target: "Custom" },
-];
-
 const formatDateRange = (startDate: Date, endDate: Date) =>
   `${startDate.toLocaleString("en", { dateStyle: "medium" })} - ${endDate.toLocaleString("en", { dateStyle: "medium" })}`;
 
 const formatTimeRange = (startDate: Date, endDate: Date) =>
   `${startDate.toLocaleString("en", { timeStyle: "short" })} - ${endDate.toLocaleString("en", { timeStyle: "short" })}`;
 
+const addMonthsToDate = (date: Date, months: number) => {
+  const nextDate = new Date(date);
+  nextDate.setMonth(nextDate.getMonth() + months);
+  return nextDate;
+};
+
+const isSameDay = (firstDate: Date, secondDate: Date) =>
+  firstDate.getFullYear() === secondDate.getFullYear()
+  && firstDate.getMonth() === secondDate.getMonth()
+  && firstDate.getDate() === secondDate.getDate();
+
 export default function AvailabilitySection({ checkedLot, lotState, handleChange, handleAvlChange }: AvailabilitySectionProps) {
   const lot = lotState?.[checkedLot];
   const [showCalendar, setShowCalendar] = useState(false);
   const [showTimerStart, setShowTimerStart] = useState(false);
+  const [isCustomEndDateEnabled, setIsCustomEndDateEnabled] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
-  const avlDates = lot?.avlDates ?? [];
-  const startAvl = avlDates?.[0]?.startAvl ? new Date(avlDates[0].startAvl) : new Date();
-  const endAvl = avlDates?.[1]?.endAvl ? new Date(avlDates[1].endAvl) : new Date();
+  const avlDates = useMemo(() => lot?.avlDates ?? EMPTY_AVAILABILITY, [lot?.avlDates]);
+  const startAvl = useMemo(() => (avlDates?.[0]?.startAvl ? new Date(avlDates[0].startAvl) : new Date()), [avlDates]);
+  const defaultEndAvl = useMemo(() => addMonthsToDate(startAvl, DEFAULT_END_MONTHS), [startAvl]);
+  const endAvl = useMemo(() => (avlDates?.[1]?.endAvl ? new Date(avlDates[1].endAvl) : defaultEndAvl), [avlDates, defaultEndAvl]);
   const avlDaysNTime = lot?.avlDaysNTime ?? EMPTY_AVAILABILITY;
 
-  const weekdayEnabled = useMemo(() => avlDaysNTime.slice(0, 5).every((entry) => entry?.bool), [avlDaysNTime]);
-  const weekendEnabled = useMemo(() => avlDaysNTime.slice(5).every((entry) => entry?.bool), [avlDaysNTime]);
+  const weekdayEnabled = useMemo(() => avlDaysNTime.slice(0, 5).every((entry: AvailabilityDayEntry) => entry?.bool), [avlDaysNTime]);
+  const weekendEnabled = useMemo(() => avlDaysNTime.slice(5).every((entry: AvailabilityDayEntry) => entry?.bool), [avlDaysNTime]);
+  const usesAutomaticEndDate = useMemo(() => isSameDay(endAvl, defaultEndAvl), [defaultEndAvl, endAvl]);
+  const availabilitySummary = useMemo(() => {
+    if (usesAutomaticEndDate) {
+      return `Starts ${startAvl.toLocaleString("en", { dateStyle: "medium" })} • Auto-ends ${endAvl.toLocaleString("en", { dateStyle: "medium" })}`;
+    }
+
+    return formatDateRange(startAvl, endAvl);
+  }, [endAvl, startAvl, usesAutomaticEndDate]);
+
+  useEffect(() => {
+    if (!showCalendar) {
+      return;
+    }
+
+    setIsCustomEndDateEnabled(!usesAutomaticEndDate);
+  }, [showCalendar, usesAutomaticEndDate, checkedLot]);
+
+  const syncStartDate = (nextDate: Date) => {
+    const normalizedStartDate = new Date(nextDate);
+    const nextEndDate = isCustomEndDateEnabled
+      ? (endAvl < normalizedStartDate ? normalizedStartDate : endAvl)
+      : addMonthsToDate(normalizedStartDate, DEFAULT_END_MONTHS);
+
+    handleAvlChange(checkedLot, "avlDates", 0, "startAvl", normalizedStartDate, "boolStart", true);
+
+    if (!isSameDay(nextEndDate, endAvl)) {
+      handleAvlChange(checkedLot, "avlDates", 1, "endAvl", nextEndDate, "boolEnd", true);
+    }
+  };
+
+  const handleEndDateToggle = (enabled: boolean) => {
+    setIsCustomEndDateEnabled(enabled);
+
+    if (!enabled) {
+      handleAvlChange(checkedLot, "avlDates", 1, "endAvl", defaultEndAvl, "boolEnd", true);
+    }
+  };
 
   const handleDaySelect = (target: string) => {
     if (target === "Custom") {
@@ -82,48 +133,16 @@ export default function AvailabilitySection({ checkedLot, lotState, handleChange
           thumbColor={lot?.avlBool !== false ? "#0F172A" : "#CBD5E1"}
         />
       </View>
-
-      <View style={[styles.fieldContainer, styles.fieldPadding]}>
-        <Text style={styles.txtFieldTitle}>Make this parking available to others</Text>
-        <View style={stylesBtns.daySelectContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 12 }}>
-            {dayOptions.map((option) => {
-              const selected =
-                option.target === "Weekdays" ? weekdayEnabled : option.target === "Weekend" ? weekendEnabled : false;
-
-              return (
-                <TouchableOpacity
-                  key={option.target}
-                  activeOpacity={0.85}
-                  onPress={() => handleDaySelect(option.target)}
-                  style={[
-                    stylesBtns.optionBtn,
-                    stylesBtns.glow,
-                    {
-                      backgroundColor: selected ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.1)",
-                      shadowColor: selected ? "rgba(255,255,255,0.9)" : "#00000000",
-                    },
-                  ]}
-                >
-                  <View style={localStyles.dayOptionInner}>
-                    <Text style={[stylesBtns.cardTitle, { color: selected ? "black" : "white" }]}>{option.title}</Text>
-                    <Text style={{ color: selected ? "black" : "white", textAlign: "center" }}>{option.subtitle}</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </View>
-
+    {/* Availability period */}
       <TouchableOpacity style={[styles.txtInC, { padding: width * 0.03 }]} onPress={() => setShowCalendar(true)} activeOpacity={0.85}>
         <View style={styles.txtInCFlex}>
           <Text style={localStyles.rowTitle}>Availability period</Text>
-          <Text style={localStyles.rowSubtitle}>{formatDateRange(startAvl, endAvl)}</Text>
+          <Text style={localStyles.rowSubtitle}>{availabilitySummary}</Text>
         </View>
         <Entypo name="chevron-thin-right" size={18} color="#fff" style={styles.chevIcon} />
       </TouchableOpacity>
 
+    {/* Start & end time */}
       <TouchableOpacity style={[styles.txtInC, { padding: width * 0.025 }]} onPress={() => setShowTimerStart(true)} activeOpacity={0.85}>
         <View style={{ flex: 1 }}>
           <Text style={localStyles.rowTitle}>Start & end time</Text>
@@ -132,120 +151,189 @@ export default function AvailabilitySection({ checkedLot, lotState, handleChange
         <Entypo name="chevron-thin-right" size={18} color="#fff" style={styles.chevIcon} />
       </TouchableOpacity>
 
-      <Modal visible={showCalendar} transparent animationType="fade" onRequestClose={() => setShowCalendar(false)}>
-        <View style={localStyles.modalBackdrop}>
-          <View style={localStyles.modalCard}>
-            <Text style={localStyles.modalTitle}>Make this parking lot available to others</Text>
-            {[0, 1].map((index) => {
-              const currentValue = index === 0 ? startAvl : endAvl;
-              const boolKey = index === 0 ? "boolStart" : "boolEnd";
-              const fieldKey = index === 0 ? "startAvl" : "endAvl";
-
-              return (
-                <View key={fieldKey} style={localStyles.pickerBlock}>
-                  <Text style={localStyles.pickerLabel}>{index === 0 ? "Start date" : "End date"}</Text>
-                  <DateTimePicker
-                    value={currentValue}
-                    mode="date"
-                    minimumDate={new Date()}
-                    display={Platform.OS === "ios" ? "inline" : "default"}
-                    onChange={(_, nextDate) => {
-                      if (!nextDate) {
-                        return;
-                      }
-
-                      handleAvlChange(checkedLot, "avlDates", index, fieldKey, nextDate, boolKey, true);
-                    }}
-                  />
-                </View>
-              );
-            })}
-
-            <Pressable onPress={() => setShowCalendar(false)} style={localStyles.modalAction}>
-              <Text style={localStyles.modalActionText}>Done</Text>
-            </Pressable>
+      <LiquidGlassModal visible={showCalendar} useNativeModal heightPercent={0.84} onClose={() => setShowCalendar(false)} onBackdropPress={() => setShowCalendar(false)}>
+        <ScrollView style={localStyles.modalScroll} contentContainerStyle={localStyles.modalScrollContent} showsVerticalScrollIndicator={false}>
+          <View style={localStyles.modalHeader}>
+            <Text style={localStyles.modalEyebrow}>Availability period</Text>
+            <Text style={localStyles.modalTitle}>Choose when this lot first goes live</Text>
+            <Text style={localStyles.modalSubtitle}>The start date is the primary control. By default, the end date stays one year ahead and automatically follows any start-date change.</Text>
           </View>
-        </View>
-      </Modal>
 
-      <Modal visible={showTimerStart} transparent animationType="fade" onRequestClose={() => setShowTimerStart(false)}>
-        <View style={localStyles.modalBackdrop}>
-          <View style={localStyles.modalCard}>
-            <Text style={localStyles.modalTitle}>Make this parking lot available to others</Text>
-
-            <View style={localStyles.dayPillsRow}>
-              {avlDaysNTime.map((entry, index) => (
-                <TouchableOpacity
-                  key={`${entry.day}-${index}`}
-                  activeOpacity={0.85}
-                  onPress={() => setSelectedDayIndex(index)}
-                  style={[localStyles.dayPill, selectedDayIndex === index && localStyles.dayPillActive]}
-                >
-                  <Text style={[localStyles.dayPillText, selectedDayIndex === index && localStyles.dayPillTextActive]}>{entry.day.slice(0, 3)}</Text>
-                </TouchableOpacity>
-              ))}
+          <View style={localStyles.summaryCard}>
+            <View style={localStyles.summaryBlock}>
+              <Text style={localStyles.summaryLabel}>Start</Text>
+              <Text style={localStyles.summaryValue}>{startAvl.toLocaleString("en", { dateStyle: "medium" })}</Text>
             </View>
+            <View style={localStyles.summaryDivider} />
+            <View style={localStyles.summaryBlock}>
+              <Text style={localStyles.summaryLabel}>End</Text>
+              <Text style={localStyles.summaryValue}>{endAvl.toLocaleString("en", { dateStyle: "medium" })}</Text>
+              <Text style={localStyles.summaryMeta}>{usesAutomaticEndDate && !isCustomEndDateEnabled ? "Auto-updating" : "Customizable"}</Text>
+            </View>
+          </View>
 
-            <View style={localStyles.toggleRow}>
-              <Text style={localStyles.pickerLabel}>Available on {avlDaysNTime[selectedDayIndex]?.day}</Text>
-              <TouchableOpacity
-                onPress={() =>
-                  handleAvlChange(
-                    checkedLot,
-                    "avlDaysNTime",
-                    selectedDayIndex,
-                    "bool",
-                    !(avlDaysNTime[selectedDayIndex]?.bool ?? false),
-                  )
+          <View style={localStyles.pickerCard}>
+            <Text style={localStyles.pickerCardTitle}>Start date</Text>
+            <Text style={localStyles.pickerCardSubtitle}>Bookings can begin from this day onward.</Text>
+            <DateTimePicker
+              value={startAvl}
+              mode="date"
+              minimumDate={new Date()}
+              display={Platform.OS === "ios" ? "inline" : "calendar"}
+              onChange={(_, nextDate) => {
+                if (!nextDate) {
+                  return;
                 }
-                style={[localStyles.toggleButton, avlDaysNTime[selectedDayIndex]?.bool && localStyles.toggleButtonActive]}
-              >
-                <Text style={localStyles.toggleButtonText}>{avlDaysNTime[selectedDayIndex]?.bool ? "On" : "Off"}</Text>
-              </TouchableOpacity>
-            </View>
 
-            <View style={localStyles.pickerBlock}>
-              <Text style={localStyles.pickerLabel}>Start availability</Text>
-              <DateTimePicker
-                value={new Date(avlDaysNTime[selectedDayIndex]?.sT ?? new Date())}
-                mode="time"
-                display="spinner"
-                is24Hour
-                minuteInterval={15}
-                onChange={(_, nextDate) => {
-                  if (!nextDate) {
-                    return;
-                  }
-
-                  handleAvlChange(checkedLot, "avlDaysNTime", selectedDayIndex, "sT", nextDate);
-                }}
-              />
-            </View>
-
-            <View style={localStyles.pickerBlock}>
-              <Text style={localStyles.pickerLabel}>End availability</Text>
-              <DateTimePicker
-                value={new Date(avlDaysNTime[selectedDayIndex]?.eT ?? new Date())}
-                mode="time"
-                display="spinner"
-                is24Hour
-                minuteInterval={15}
-                onChange={(_, nextDate) => {
-                  if (!nextDate) {
-                    return;
-                  }
-
-                  handleAvlChange(checkedLot, "avlDaysNTime", selectedDayIndex, "eT", nextDate);
-                }}
-              />
-            </View>
-
-            <Pressable onPress={() => setShowTimerStart(false)} style={localStyles.modalAction}>
-              <Text style={localStyles.modalActionText}>Done</Text>
-            </Pressable>
+                syncStartDate(nextDate);
+              }}
+            />
           </View>
-        </View>
-      </Modal>
+
+          <View style={localStyles.autoEndCard}>
+            <View style={localStyles.autoEndCopy}>
+              <Text style={localStyles.autoEndTitle}>Default end date</Text>
+              <Text style={localStyles.autoEndBody}>The lot is set to end after {DEFAULT_END_MONTHS} months and automatically rolls forward whenever the start date changes.</Text>
+            </View>
+            <Switch
+              value={isCustomEndDateEnabled}
+              onValueChange={handleEndDateToggle}
+              trackColor={{ false: "rgba(148,163,184,0.35)", true: "rgba(15,23,42,0.32)" }}
+              thumbColor={isCustomEndDateEnabled ? "#0F172A" : "#E2E8F0"}
+            />
+          </View>
+
+          <Text style={localStyles.customizeHint}>{isCustomEndDateEnabled ? "Custom end date enabled" : "Turn this on only if the lot should stop being bookable before the rolling one-year window."}</Text>
+
+          {isCustomEndDateEnabled ? (
+            <View style={localStyles.pickerCard}>
+              <Text style={localStyles.pickerCardTitle}>Custom end date</Text>
+              <Text style={localStyles.pickerCardSubtitle}>Use this only when the lot should stop being available on a specific day.</Text>
+              <DateTimePicker
+                value={endAvl < startAvl ? startAvl : endAvl}
+                mode="date"
+                minimumDate={startAvl}
+                display={Platform.OS === "ios" ? "inline" : "calendar"}
+                onChange={(_, nextDate) => {
+                  if (!nextDate) {
+                    return;
+                  }
+
+                  handleAvlChange(checkedLot, "avlDates", 1, "endAvl", nextDate, "boolEnd", true);
+                }}
+              />
+            </View>
+          ) : null}
+
+          <Pressable onPress={() => setShowCalendar(false)} style={localStyles.modalAction}>
+            <Text style={localStyles.modalActionText}>Done</Text>
+          </Pressable>
+        </ScrollView>
+      </LiquidGlassModal>
+
+      <LiquidGlassModal visible={showTimerStart} useNativeModal heightPercent={0.82} onClose={() => setShowTimerStart(false)} onBackdropPress={() => setShowTimerStart(false)}>
+        <ScrollView style={localStyles.modalScroll} contentContainerStyle={localStyles.modalScrollContent} showsVerticalScrollIndicator={false}>
+          <View style={localStyles.modalHeader}>
+            <Text style={localStyles.modalEyebrow}>Weekly availability</Text>
+            <Text style={localStyles.modalTitle}>Tune the hours for each day</Text>
+            <Text style={localStyles.modalSubtitle}>Choose the days this lot can be booked and refine the time range for the selected day.</Text>
+          </View>
+
+          <View style={localStyles.quickPresetRow}>
+            {[
+              { label: "Weekdays", active: weekdayEnabled },
+              { label: "Weekend", active: weekendEnabled },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.label}
+                activeOpacity={0.85}
+                onPress={() => handleDaySelect(item.label)}
+                style={[localStyles.quickPresetPill, item.active && localStyles.quickPresetPillActive]}
+              >
+                <Text style={[localStyles.quickPresetText, item.active && localStyles.quickPresetTextActive]}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={localStyles.dayPillsRow}>
+            {avlDaysNTime.map((entry: AvailabilityDayEntry, index: number) => (
+              <TouchableOpacity
+                key={`${entry.day}-${index}`}
+                activeOpacity={0.85}
+                onPress={() => setSelectedDayIndex(index)}
+                style={[localStyles.dayPill, selectedDayIndex === index && localStyles.dayPillActive]}
+              >
+                <Text style={[localStyles.dayPillText, selectedDayIndex === index && localStyles.dayPillTextActive]}>{entry.day.slice(0, 3)}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={localStyles.toggleRowCard}>
+            <View style={localStyles.toggleCopy}>
+              <Text style={localStyles.pickerCardTitle}>Available on {avlDaysNTime[selectedDayIndex]?.day}</Text>
+              <Text style={localStyles.pickerCardSubtitle}>Turn this day off without changing the rest of the week.</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() =>
+                handleAvlChange(
+                  checkedLot,
+                  "avlDaysNTime",
+                  selectedDayIndex,
+                  "bool",
+                  !(avlDaysNTime[selectedDayIndex]?.bool ?? false),
+                )
+              }
+              style={[localStyles.toggleButton, avlDaysNTime[selectedDayIndex]?.bool && localStyles.toggleButtonActive]}
+            >
+              <Text style={[localStyles.toggleButtonText, avlDaysNTime[selectedDayIndex]?.bool && localStyles.toggleButtonTextActive]}>
+                {avlDaysNTime[selectedDayIndex]?.bool ? "On" : "Off"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={localStyles.pickerCard}>
+            <Text style={localStyles.pickerCardTitle}>Start availability</Text>
+            <Text style={localStyles.pickerCardSubtitle}>Choose when bookings can begin on the selected day.</Text>
+            <DateTimePicker
+              value={new Date(avlDaysNTime[selectedDayIndex]?.sT ?? new Date())}
+              mode="time"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              is24Hour
+              minuteInterval={15}
+              onChange={(_, nextDate) => {
+                if (!nextDate) {
+                  return;
+                }
+
+                handleAvlChange(checkedLot, "avlDaysNTime", selectedDayIndex, "sT", nextDate);
+              }}
+            />
+          </View>
+
+          <View style={localStyles.pickerCard}>
+            <Text style={localStyles.pickerCardTitle}>End availability</Text>
+            <Text style={localStyles.pickerCardSubtitle}>Choose when bookings should stop on the selected day.</Text>
+            <DateTimePicker
+              value={new Date(avlDaysNTime[selectedDayIndex]?.eT ?? new Date())}
+              mode="time"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              is24Hour
+              minuteInterval={15}
+              onChange={(_, nextDate) => {
+                if (!nextDate) {
+                  return;
+                }
+
+                handleAvlChange(checkedLot, "avlDaysNTime", selectedDayIndex, "eT", nextDate);
+              }}
+            />
+          </View>
+
+          <Pressable onPress={() => setShowTimerStart(false)} style={localStyles.modalAction}>
+            <Text style={localStyles.modalActionText}>Done</Text>
+          </Pressable>
+        </ScrollView>
+      </LiquidGlassModal>
     </>
   );
 }
@@ -272,11 +360,7 @@ const localStyles = StyleSheet.create({
     lineHeight: 19,
     marginTop: 4,
   },
-  dayOptionInner: {
-    width: width * 0.23,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+
   rowTitle: {
     color: "#fff",
     marginLeft: width * 0.03,
@@ -287,25 +371,131 @@ const localStyles = StyleSheet.create({
     marginLeft: width * 0.03,
     marginTop: 4,
   },
-  modalBackdrop: {
+  modalScroll: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    justifyContent: "center",
-    paddingHorizontal: 16,
   },
-  modalCard: {
-    backgroundColor: "#1C2833",
-    borderRadius: 20,
-    paddingVertical: 16,
-    overflow: "hidden",
+  modalScrollContent: {
+    paddingHorizontal: 18,
+    paddingBottom: 28,
+  },
+  modalHeader: {
+    paddingHorizontal: 8,
+    paddingBottom: 8,
+  },
+  modalEyebrow: {
+    color: "rgba(15,23,42,0.52)",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    marginBottom: 10,
   },
   modalTitle: {
-    fontSize: 26,
-    color: "rgba(255,255,255,0.78)",
-    marginBottom: 12,
-    marginHorizontal: 16,
-    textAlign: "center",
+    fontSize: 29,
+    color: "#0F172A",
+    marginBottom: 8,
     fontWeight: "700",
+    letterSpacing: -0.9,
+  },
+  modalSubtitle: {
+    color: "#475569",
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  summaryCard: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    backgroundColor: "rgba(255,255,255,0.52)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.78)",
+    marginTop: 10,
+    marginBottom: 14,
+  },
+  summaryBlock: {
+    flex: 1,
+  },
+  summaryLabel: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.45,
+    marginBottom: 6,
+  },
+  summaryValue: {
+    color: "#0F172A",
+    fontSize: 17,
+    fontWeight: "700",
+    lineHeight: 22,
+  },
+  summaryMeta: {
+    color: "#475569",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  summaryDivider: {
+    width: 1,
+    backgroundColor: "rgba(148,163,184,0.28)",
+    marginHorizontal: 16,
+  },
+  pickerCard: {
+    backgroundColor: "rgba(255,255,255,0.66)",
+    borderRadius: 28,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
+    marginBottom: 14,
+  },
+  pickerCardTitle: {
+    fontSize: 18,
+    color: "#0F172A",
+    fontWeight: "700",
+  },
+  pickerCardSubtitle: {
+    color: "#475569",
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  autoEndCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: "rgba(255,255,255,0.54)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.82)",
+  },
+  autoEndCopy: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  autoEndTitle: {
+    color: "#0F172A",
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  autoEndBody: {
+    color: "#475569",
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 4,
+  },
+  customizeHint: {
+    color: "#64748B",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 10,
+    marginBottom: 14,
+    marginHorizontal: 8,
   },
   pickerBlock: {
     backgroundColor: "rgba(255,255,255,0.95)",
@@ -321,11 +511,11 @@ const localStyles = StyleSheet.create({
   },
   modalAction: {
     alignSelf: "center",
-    marginTop: 8,
+    marginTop: 10,
     marginBottom: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 28,
-    paddingVertical: 12,
+    backgroundColor: "#0F172A",
+    paddingHorizontal: 34,
+    paddingVertical: 14,
     borderRadius: 999,
   },
   modalActionText: {
@@ -333,12 +523,36 @@ const localStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+  quickPresetRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 14,
+  },
+  quickPresetPill: {
+    flex: 1,
+    borderRadius: 999,
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.44)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.74)",
+  },
+  quickPresetPillActive: {
+    backgroundColor: "#0F172A",
+    borderColor: "#0F172A",
+  },
+  quickPresetText: {
+    color: "#0F172A",
+    fontWeight: "700",
+  },
+  quickPresetTextActive: {
+    color: "#FFFFFF",
+  },
   dayPillsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
     gap: 8,
-    marginHorizontal: 16,
     marginBottom: 12,
   },
   dayPill: {
@@ -346,37 +560,52 @@ const localStyles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: "rgba(255,255,255,0.46)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.72)",
   },
   dayPillActive: {
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: "#0F172A",
+    borderColor: "#0F172A",
   },
   dayPillText: {
-    color: "#fff",
+    color: "#0F172A",
     textAlign: "center",
     fontWeight: "600",
   },
   dayPillTextActive: {
-    color: "#0F172A",
+    color: "#FFFFFF",
   },
-  toggleRow: {
+  toggleRowCard: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginHorizontal: 16,
-    marginBottom: 8,
+    backgroundColor: "rgba(255,255,255,0.54)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.82)",
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 14,
+  },
+  toggleCopy: {
+    flex: 1,
+    paddingRight: 12,
   },
   toggleButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: "rgba(15,23,42,0.08)",
   },
   toggleButtonActive: {
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: "#0F172A",
   },
   toggleButtonText: {
     color: "#0F172A",
     fontWeight: "700",
+  },
+  toggleButtonTextActive: {
+    color: "#FFFFFF",
   },
 });

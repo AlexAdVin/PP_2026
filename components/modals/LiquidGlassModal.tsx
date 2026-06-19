@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Dimensions, Pressable, StyleSheet, View } from "react-native";
+import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
@@ -22,6 +22,8 @@ type Props = {
   heightPercent?: number;
   onClose: () => void;
   onBackdropPress?: () => void;
+  visible?: boolean;
+  useNativeModal?: boolean;
 };
 
 export default function LiquidGlassModal({
@@ -30,6 +32,8 @@ export default function LiquidGlassModal({
   heightPercent,
   onClose,
   onBackdropPress,
+  visible = true,
+  useNativeModal = false,
 }: Props) {
   const resolvedHeight = height ?? SCREEN_HEIGHT * (heightPercent ?? 0.55);
   const translateY = useSharedValue(resolvedHeight + 60);
@@ -83,7 +87,11 @@ export default function LiquidGlassModal({
     opacity: interpolate(translateY.value, [0, 250], [1, 0.2]),
   }));
 
-  return (
+  if (!visible) {
+    return null;
+  }
+
+  const sheet = (
     <View pointerEvents="box-none" style={styles.overlay}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onBackdropPress ?? closeSheet}>
         <Animated.View style={[styles.backdrop, backdropStyle]} />
@@ -114,6 +122,25 @@ export default function LiquidGlassModal({
       </GestureDetector>
     </View>
   );
+
+  if (useNativeModal) {
+    return (
+      <Modal
+        transparent
+        visible={visible}
+        animationType="none"
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
+        navigationBarTranslucent
+        hardwareAccelerated
+        onRequestClose={closeSheet}
+      >
+        {sheet}
+      </Modal>
+    );
+  }
+
+  return sheet;
 }
 
 function GlassHighlights() {
