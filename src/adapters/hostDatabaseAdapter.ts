@@ -1,11 +1,9 @@
-const mockHostData = require("@/model/mockLocations.json");
+import { hostLocationAdapter } from "@/src/adapters/hostLocationAdapter";
 
-const clonePayload = <T,>(payload: T): T => JSON.parse(JSON.stringify(payload));
-
-export async function fetchMockHostData() {
-  return clonePayload(mockHostData);
+export async function fetchHostData() {
+  return hostLocationAdapter.fetchCurrentHostLotState();
 }
 
 export const hostDatabaseAdapter = {
-  fetchHostData: fetchMockHostData,
+  fetchHostData,
 };

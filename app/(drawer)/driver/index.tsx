@@ -10,8 +10,7 @@ import SearchBarComponent from "@/components/home/SearchBarComponent";
 import EMap from '@/screens/EMap';
 
 import styles from '@/global/style/styles';
-import mockLocations from '@/model/mockLocations.json';
-import SearchInput from '@/components/search/SearchInput';
+import { publicLocationAdapter } from '@/src/adapters/publicLocationAdapter';
 
 
 // Empty default - EMap will use mockLocations if no posts provided
@@ -24,12 +23,35 @@ const HomeScreen = () => {
   const navigation = useNavigation<any>();
 
   useEffect(() => {
+    let isMounted = true;
+
+    const hydratePublishedLocations = async () => {
+      try {
+        const publishedLocations = await publicLocationAdapter.fetchPublished();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setPosts(publishedLocations);
+      } catch (error) {
+        console.error('Failed to load published locations', error);
+
+        if (isMounted) {
+          setPosts([]);
+        }
+      }
+    };
+
     if (activeTab === 'Parking') {
-      // Use empty array - EMap will use mockLocations from JSON
-      setPosts([]);
+      void hydratePublishedLocations();
     } else {
       setPosts([]);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [activeTab]);
 
   const handleMenuPress = () => {

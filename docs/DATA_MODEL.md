@@ -106,7 +106,7 @@ Host listing creation is now a two-stage process:
 - `app/(drawer)/host/create-listing.tsx` edits the per-lot draft created from that metadata. This migrated stage replaces the old Recoil-based `CreateListingNew` flow with Zustand-backed `listingLotDraft` state.
 - Each lot draft contains availability dates, weekly availability times, charger configuration, rules, and transaction placeholders.
 - Listing creation is preceded by two standalone intro routes so the actual editing screens stay focused on form and settings responsibilities only.
-- Final save calls `src/adapters/hostListingPersistenceAdapter.ts`, which currently returns a placeholder persistence result. The store then materializes a fully shaped location record in local host state using that response.
+- Final save calls `src/adapters/hostListingPersistenceAdapter.ts`, which upserts the host profile and creates the full location graph in Supabase through `public.create_host_listing(jsonb)`. The store then hydrates the canonical persisted location back into local host state.
 
 This keeps Expo 54-compatible UI flow and state management in place while leaving the actual backend write contract behind a single adapter boundary.
 

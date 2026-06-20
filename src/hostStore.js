@@ -622,20 +622,21 @@ export const useHostStore = create((set, get) => ({
     const state = get();
     const currentState = state.hostLotState;
     const currentProfile = state.hostProfile;
-    const hostSub = currentProfile.hostSub ?? currentState.hostSub ?? `mock-host-${Date.now()}`;
-    const hostName = currentProfile.hostName || currentState.hostName || "Scandinavian Host";
     const persistedListing = await hostListingPersistenceAdapter.persistListing({
-      hostProfile: { hostSub, hostName },
+      hostProfile: {
+        hostSub: currentProfile.hostSub ?? currentState.hostSub ?? null,
+        hostName: currentProfile.hostName || currentState.hostName || "",
+      },
       listingData: state.listingData,
       lotDraft: state.listingLotDraft,
     });
 
-    const newLocation = createLocationFromListing(
-      state.listingData,
-      state.listingLotDraft,
-      persistedListing?.locationId,
-    );
-    const nextLocations = [...(currentState.locations ?? []), newLocation];
+    const hostSub = persistedListing?.hostProfile?.hostSub ?? currentProfile.hostSub ?? currentState.hostSub ?? null;
+    const hostName = persistedListing?.hostProfile?.hostName ?? currentProfile.hostName ?? currentState.hostName ?? "";
+    const newLocation =
+      persistedListing?.location ??
+      createLocationFromListing(state.listingData, state.listingLotDraft, persistedListing?.locationId);
+    const nextLocations = [...(currentState.locations ?? []).filter((location) => location?.id !== newLocation.id), newLocation];
 
     set({
       hostProfile: {

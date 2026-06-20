@@ -438,7 +438,7 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={24}
     >
       <ScrollView

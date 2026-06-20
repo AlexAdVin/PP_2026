@@ -99,19 +99,23 @@ export default function HostHomeScreen() {
   useEffect(() => {
     let isMounted = true;
 
-    const hydrateMockDatabase = async () => {
+    const hydrateHostDatabase = async () => {
       if (hostLotState.locations?.length) {
         return;
       }
 
-      const payload = await hostDatabaseAdapter.fetchHostData();
+      try {
+        const payload = await hostDatabaseAdapter.fetchHostData();
 
-      if (isMounted) {
-        hydrateHostData(payload);
+        if (isMounted) {
+          hydrateHostData(payload);
+        }
+      } catch (error) {
+        console.error("Failed to hydrate host data", error);
       }
     };
 
-    void hydrateMockDatabase();
+    void hydrateHostDatabase();
 
     return () => {
       isMounted = false;

@@ -45,7 +45,7 @@ The `Start sharing` action now routes to a standalone intro screen and then into
 
 After the five-step metadata wizard is complete, the flow now continues into `/host/create-listing`, which migrates the old `CreateListingNew` lot-settings stage into the Expo Router app. This second stage uses Zustand-backed `listingLotDraft` state for per-lot availability and charger settings, replacing the old Recoil `useLotState` flow.
 
-Database writes are intentionally routed through the placeholder adapter in `src/adapters/hostListingPersistenceAdapter.ts`. The adapter currently simulates a successful persistence call and returns a synthetic location id so the UI and store can behave like production without binding the new host flow to unfinished backend writes.
+Database writes now route through Supabase-backed adapters and SQL RPCs for host profile creation and full listing persistence.
 
 The hosting hub now uses a premium shared liquid-glass layout system from `components/layout/premium/`, reused by both the landing screen and the host home screen.
 
@@ -53,14 +53,14 @@ The standalone intros themselves use `components/hostHub/shared/FlowSplashScreen
 
 Host locations and resumable listing drafts now come from separate sources so the app matches the intended production split.
 
-- Hosted locations are loaded through `src/adapters/hostDatabaseAdapter.ts`, which currently reads `model/mockLocations.json` to simulate a database response.
+- Hosted locations are loaded through `src/adapters/hostDatabaseAdapter.ts`, which fetches the authenticated host's locations from Supabase.
 - `Save & Exit` persists only the in-progress listing draft in AsyncStorage through `src/hostStore.js`.
-- Final listing submission from `/host/create-listing` is routed through `src/adapters/hostListingPersistenceAdapter.ts`, which currently acts as a placeholder write boundary until the real backend contract is wired in.
+- Final listing submission from `/host/create-listing` is routed through `src/adapters/hostListingPersistenceAdapter.ts`, which now validates the draft, upserts the host profile, and creates the location through Supabase.
 - First-launch onboarding visibility is persisted separately through `src/adapters/appIntroAdapter.ts` so the app intro appears before Landing only for users who have not completed it yet.
 - The hosting hub always hydrates the simulated database locations, then overlays any saved draft in the UI as a resumable unlisted item.
 - If there are database-backed locations, the saved draft appears alongside them in the location switcher. If the draft is the only host artifact, the hub shows a dedicated `Continue listing` CTA.
 
-When the backend is ready, replace the adapter implementation in `src/adapters/hostDatabaseAdapter.ts` with the real API or database client and keep AsyncStorage reserved for incomplete local drafts.
+Published locations can now be fetched for the driver map through `src/adapters/publicLocationAdapter.ts`, while AsyncStorage stays reserved for incomplete local drafts only.
 
 ## Get a fresh project
 

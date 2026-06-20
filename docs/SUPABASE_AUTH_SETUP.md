@@ -133,6 +133,10 @@ If Face ID succeeds but Supabase returns `Provider (issuer "https://appleid.appl
 
 The app still upserts the signed-in session profile client-side as an idempotent safety net, while the database trigger remains the primary server-side sync path.
 
+## Hosting Setup
+
+Hosting now has its own Supabase schema and adapters. After the base users script is in place, run [docs/supabase-hosting.sql](c:/Users/aaavu/Documents/TBD/PP_2026_Project/PP_2026/docs/supabase-hosting.sql) and follow [docs/SUPABASE_HOSTING_SETUP.md](c:/Users/aaavu/Documents/TBD/PP_2026_Project/PP_2026/docs/SUPABASE_HOSTING_SETUP.md).
+
 ## Modal Trigger Rules
 
 - Search gate: unauthenticated users can complete 3 searches; the 4th search attempt opens the auth modal.
