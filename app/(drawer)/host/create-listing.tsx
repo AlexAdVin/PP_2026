@@ -61,8 +61,12 @@ export default function CreateListingScreen() {
       }
 
       router.replace("/host");
-    } catch {
-      Alert.alert("Could not save listing", "Try again.");
+    } catch (error) {
+      console.error("Failed to save listing", error);
+      Alert.alert(
+        "Could not save listing",
+        error instanceof Error ? error.message : "Try again.",
+      );
     }
   };
 

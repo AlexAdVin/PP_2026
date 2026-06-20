@@ -47,6 +47,8 @@ After the five-step metadata wizard is complete, the flow now continues into `/h
 
 Database writes now route through Supabase-backed adapters and SQL RPCs for host profile creation and full listing persistence.
 
+The same signed-in user remains the driver identity throughout the app. Publishing a listing adds a linked host profile for that same user instead of switching roles or creating a second account.
+
 The hosting hub now uses a premium shared liquid-glass layout system from `components/layout/premium/`, reused by both the landing screen and the host home screen.
 
 The standalone intros themselves use `components/hostHub/shared/FlowSplashScreen.tsx`, which keeps the older splash-screen structure: cinematic media on top, indicators below, text content beneath that, then the shared progress bar and shared footer navigation.

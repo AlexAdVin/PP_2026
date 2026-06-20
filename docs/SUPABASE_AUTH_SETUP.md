@@ -11,6 +11,8 @@ The auth UI is mounted once at the app root and rendered inside the shared glass
 
 The flow is now identity led and step based. It starts with one field only: email or phone. The app detects whether the identity already exists and adapts automatically into sign-in or sign-up without asking the user to choose first. Future providers should follow the same one-input-per-slide pattern.
 
+The authenticated user is always the driver identity in the product. Hosting is additive: when that same authenticated user successfully publishes a listing, the backend also creates a host profile tied to the same `auth.users.id`.
+
 ## Environment Variables
 
 Set these in the Expo runtime environment:

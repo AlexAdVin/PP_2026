@@ -2,11 +2,14 @@
 
 This setup keeps `public.users` as the single identity table while allowing any authenticated driver to become a host only when they publish the first location.
 
+The role model is additive, not exclusive: a user is always a driver in the app, and once the first listing is published that same user also becomes a host. The same auth identity can still search, book parking, and manage owned listings.
+
 ## Ownership Model
 
 - Every signed-in person gets a row in `public.users`.
-- Drivers stay drivers by default.
+- Drivers stay drivers permanently.
 - A row in `public.hosts` is created only when the first listing is published.
+- Publishing does not replace or migrate the driver identity. It adds host capabilities to the same `public.users.id`.
 - `hosts.host_sub` mirrors the old Amplify `hostSub` pattern and stores the same value as `auth.users.id`.
 - `public.locations` belongs to `public.hosts`.
 - `public.lots`, `public.lot_availability_windows`, and `public.chargers` belong to a location through the lot.
@@ -55,12 +58,13 @@ The `create_host_listing` RPC is the critical production boundary because it per
 ## Current Flow
 
 1. User authenticates and gets a `public.users` row.
-2. User remains a driver until publish.
+2. User remains a driver and can use all driver flows.
 3. Final publish calls `hostListingPersistenceAdapter.persistListing()`.
 4. The adapter upserts the host profile and calls `create_host_listing`.
-5. The new location is fetched back from Supabase and hydrated into the host store.
-6. Hosting Hub fetches owned locations from Supabase.
-7. The driver map fetches published active locations from Supabase.
+5. The same `public.users.id` is marked with `is_host = true` and linked to `public.hosts`.
+6. The new location is fetched back from Supabase and hydrated into the host store.
+7. Hosting Hub fetches owned locations from Supabase.
+8. The driver map fetches published active locations from Supabase.
 
 ## Scope Today
 
