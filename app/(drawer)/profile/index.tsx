@@ -20,6 +20,7 @@ import LiquidGlassModal from "@/components/modals/LiquidGlassModal";
 import PaymentMethodScreen from "@/app/modal/PaymentMethodScreen";
 import SignOutButton from "@/components/auth/SignOutButton";
 import { useAuthStore } from "@/src/store/authStore";
+import type { PaymentMethodSelection } from "@/src/types/payment";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -36,8 +37,8 @@ export default function ProfileScreen() {
     setModalHeightPercent(0.55);
   };
 
-  const handlePaymentContinue = (method: string) => {
-    setPaymentLabel(method);
+  const handlePaymentContinue = (selection: PaymentMethodSelection) => {
+    setPaymentLabel(selection.label);
     closeModal();
   };
 

@@ -1,4 +1,4 @@
-import { Text, Dimensions, View } from 'react-native'
+import { Text, Dimensions } from 'react-native'
 import React from 'react'
 import styles from '../../global/style/styles';
 import { useRouter } from 'expo-router';
@@ -9,25 +9,16 @@ import { useLocationStore } from '../../src/store';
 
 const { width, height } = Dimensions.get("window");
 
-const FooterActionBar = ({ setShowTPicker, checkedLot, marker }) => {
+const FooterActionBar = ({ setShowTPicker, checkedLot, marker, bookingBlocked = false }) => {
   const router = useRouter();
   const { bookingTime } = useLocationStore();
 
-  const startTime = new Date(bookingTime.startTime);
   const duration = new Date(bookingTime.duration);
 
   const formattedDuration = `${duration?.getHours()} hr ${duration
   ?.getMinutes()
   .toString()
   .padStart(2, '0')} min`;
-
-  const formattedStartTime = `${startTime?.toLocaleString('da-DK', {
-    timeStyle: 'short',
-    timeZone: 'Europe/Copenhagen',
-  })}  •  ${startTime?.toLocaleString('da-DK', {
-    dateStyle: 'medium',
-    timeZone: 'Europe/Copenhagen',
-  })}`;
 
   const displayText = '\n' + formattedDuration
 
@@ -46,10 +37,16 @@ const FooterActionBar = ({ setShowTPicker, checkedLot, marker }) => {
       </HapticButton>
       <HapticButton 
         hapticStyle="medium"
-        style={{ flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.2)", marginVertical: 5, borderRadius: 10, marginHorizontal: width * 0.05, paddingHorizontal: width * 0.03, paddingVertical: 10 }}
-        onPress={() => { router.push({ pathname: "/driver/pay", params: { hrPrice: marker.hrPrice, lotID: marker.Lots.items[checkedLot].id, startTime: bookingTime.startTime, duration: bookingTime.duration } }) }}
+        style={{ flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.2)", marginVertical: 5, borderRadius: 10, marginHorizontal: width * 0.05, paddingHorizontal: width * 0.03, paddingVertical: 10, opacity: bookingBlocked ? 0.45 : 1 }}
+        onPress={() => {
+          if (bookingBlocked) {
+            return;
+          }
+
+          router.push({ pathname: "/driver/pay", params: { hrPrice: marker.hrPrice, lotID: marker.Lots.items[checkedLot].id, startTime: bookingTime.startTime, duration: bookingTime.duration } });
+        }}
       >
-        <Text style={[styles.exText, { width: width * 0.27 }]}>Book now</Text>
+        <Text style={[styles.exText, { width: width * 0.27 }]}>{bookingBlocked ? 'Unavailable' : 'Book now'}</Text>
         <MaterialCommunityIcons name="chevron-double-right" size={28} color="white" style={{ marginRight: width * 0.025 }} />
       </HapticButton>
     </BlurView>

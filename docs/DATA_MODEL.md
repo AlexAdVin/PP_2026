@@ -38,12 +38,34 @@ The application uses a comprehensive GraphQL data model with the following entit
 
 #### 4. **Transactions** (Booking/Reservation)
 - `id`: Transaction ID
-- `lotID`, `driverID`: Foreign keys
-- `driverName`: Name of person booking
-- `startBooking`, `endBooking`: Booking time range (AWSDateTime)
-- `agreedPriceHR`: Final negotiated price per hour
-- `surge`: Surge pricing multiplier (if any)
+- `bookingReference`: Human-friendly booking identifier for support and receipts
+- `lotID`, `locationID`, `hostID`, `driverID`: Foreign keys and ownership snapshot
+- `driverName`: Driver display name snapshot at booking time
+- `status`: Booking state such as `confirmed`, `cancelled`, or `refunded`
+- `bookedAt`: Timestamp when payment was confirmed
+- `startBooking`, `endBooking`: Reserved parking interval (ISO timestamp)
+- `durationMinutes`: Duration snapshot used for audit and reporting
+- `hourlyRate`, `parkingAmount`, `serviceFeeAmount`, `totalAmount`, `currencyCode`: Auditable pricing snapshot
+- `paymentMethodType`, `paymentMethodLabel`, `paymentProvider`: Masked payment summary
+- `agreedPriceHR`: Backward-compatible hourly price field preserved for older UI consumers
+- `surge`: Legacy-compatible surge field
 - **Relations**: Belongs to Lot (many-to-one), Belongs to Driver
+
+#### 4a. **TransactionPaymentDetails** (Sanitized Payment Snapshot)
+- `transactionID`: One-to-one key to a booking transaction
+- `paymentMethodType`: `card`, `mobilepay`, or `apple_pay`
+- `displayLabel`: What the UI shows back to the user
+- `cardBrand`, `cardLast4`, `cardExpMonth`, `cardExpYear`, `cardholderName`: Stored only for card-based bookings
+- `mobilepayPhoneLast4`, `mobilepayProfileName`: Stored only for MobilePay bookings
+- `walletProvider`: For wallet flows such as Apple Pay
+- `providerCustomerId`, `providerPaymentMethodId`, `fingerprint`, `billingCountry`: Optional PSP references
+
+#### 4b. **TransactionEvents** (Audit Trail)
+- `transactionID`: Parent booking transaction
+- `eventType`, `eventStatus`, `eventSource`: Booking/payment lifecycle markers
+- `actorUserID`: Who triggered the event when known
+- `occurredAt`: Event timestamp
+- `payload`: Append-only structured metadata for disputes, reconciliation, and support
 
 #### 5. **AvlDaysNTime** (Availability Schedule)
 - `id`: Unique identifier
@@ -107,6 +129,7 @@ Host listing creation is now a two-stage process:
 - Each lot draft contains availability dates, weekly availability times, charger configuration, rules, and transaction placeholders.
 - Listing creation is preceded by two standalone intro routes so the actual editing screens stay focused on form and settings responsibilities only.
 - Final save calls `src/adapters/hostListingPersistenceAdapter.ts`, which upserts the host profile and creates the full location graph in Supabase through `public.create_host_listing(jsonb)`. The store then hydrates the canonical persisted location back into local host state.
+- Driver booking confirmation now calls `src/adapters/transactionAdapter.ts`, which writes the booking through `public.create_booking_transaction(jsonb)` and reads public booking windows through `public.get_lot_booking_windows(...)` for availability checks.
 
 This keeps Expo 54-compatible UI flow and state management in place while leaving the actual backend write contract behind a single adapter boundary.
 

@@ -13,58 +13,170 @@ import {
 import { BlurView } from "expo-blur";
 
 import { Ionicons } from "@expo/vector-icons";
-
-type PaymentMethod = "apple" | "mobilepay" | "card";
+import type { PaymentMethodSelection, PaymentMethodType } from "@/src/types/payment";
 
 type Props = {
-  onContinue: (paymentLabel: string) => void;
+  onContinue: (paymentSelection: PaymentMethodSelection) => void;
   onStepChange?: (step: "choose" | "details" | "review") => void;
+  amountLabel?: string;
+  initialSelection?: PaymentMethodSelection | null;
 };
+
+function sanitizeDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function detectCardBrand(cardNumber: string) {
+  const digits = sanitizeDigits(cardNumber);
+
+  if (/^4/.test(digits)) {
+    return "Visa";
+  }
+
+  if (/^(5[1-5]|2[2-7])/.test(digits)) {
+    return "Mastercard";
+  }
+
+  if (/^3[47]/.test(digits)) {
+    return "Amex";
+  }
+
+  return "Card";
+}
+
+function parseExpiry(expiry: string) {
+  const [monthValue, yearValue] = expiry.split("/").map((value) => Number(value));
+
+  return {
+    month: Number.isFinite(monthValue) ? monthValue : null,
+    year: Number.isFinite(yearValue) ? 2000 + yearValue : null,
+  };
+}
 
 export default function PaymentMethodScreen({
   onContinue,
   onStepChange,
+  amountLabel = "$0.00",
+  initialSelection = null,
 }: Props) {
-  const [selected, setSelected] = useState<PaymentMethod>();
+  const [selected, setSelected] = useState<PaymentMethodType | undefined>(initialSelection?.methodType);
   const [step, setStep] = useState<"choose" | "details" | "review">("choose");
   const [cardNumber, setCardNumber] = useState("4242424242424242");
   const [expiry, setExpiry] = useState("12/28");
   const [cvc, setCvc] = useState("123");
   const [name, setName] = useState("John Doe");
+  const [mobilePayPhone, setMobilePayPhone] = useState("");
+  const [mobilePayName, setMobilePayName] = useState("");
 
   const methods = [
     {
-      key: "apple" as PaymentMethod,
+      key: "apple_pay" as PaymentMethodType,
       title: "Apple Pay",
       icon: "logo-apple",
     },
     {
-      key: "mobilepay" as PaymentMethod,
+      key: "mobilepay" as PaymentMethodType,
       title: "MobilePay",
       icon: "phone-portrait-outline",
     },
     {
-      key: "card" as PaymentMethod,
+      key: "card" as PaymentMethodType,
       title: "Card",
       icon: "card-outline",
     },
   ];
 
   const selectedMethod = methods.find((method) => method.key === selected);
-  const cardMask = cardNumber.slice(-4).padStart(4, "•");
+  const cardDigits = sanitizeDigits(cardNumber);
+  const cardBrand = detectCardBrand(cardDigits);
+  const cardMask = cardDigits.slice(-4).padStart(4, "•");
+  const mobilePayMask = sanitizeDigits(mobilePayPhone).slice(-4).padStart(4, "•");
   const paymentLabel =
     selected === "card"
-      ? `Visa •••• ${cardMask}`
-      : (selectedMethod?.title ?? "Card");
+      ? `${cardBrand} •••• ${cardMask}`
+      : selected === "mobilepay"
+        ? sanitizeDigits(mobilePayPhone).length >= 4
+          ? `MobilePay •••• ${mobilePayMask}`
+          : "MobilePay"
+        : (selectedMethod?.title ?? "Card");
+
+  const buildSelection = (): PaymentMethodSelection | null => {
+    if (!selected) {
+      return null;
+    }
+
+    if (selected === "card") {
+      const parsedExpiry = parseExpiry(expiry);
+
+      return {
+        methodType: "card",
+        label: paymentLabel,
+        provider: "manual",
+        walletProvider: null,
+        cardBrand,
+        cardLast4: cardDigits.slice(-4) || null,
+        cardExpMonth: parsedExpiry.month,
+        cardExpYear: parsedExpiry.year,
+        cardholderName: name.trim() || null,
+        mobilepayPhoneLast4: null,
+        mobilepayProfileName: null,
+        metadata: {
+          source: "payment_method_screen",
+        },
+      };
+    }
+
+    if (selected === "mobilepay") {
+      const phoneDigits = sanitizeDigits(mobilePayPhone);
+
+      return {
+        methodType: "mobilepay",
+        label: paymentLabel,
+        provider: "manual",
+        walletProvider: "mobilepay",
+        cardBrand: null,
+        cardLast4: null,
+        cardExpMonth: null,
+        cardExpYear: null,
+        cardholderName: null,
+        mobilepayPhoneLast4: phoneDigits.slice(-4) || null,
+        mobilepayProfileName: mobilePayName.trim() || null,
+        metadata: {
+          source: "payment_method_screen",
+        },
+      };
+    }
+
+    return {
+      methodType: "apple_pay",
+      label: paymentLabel,
+      provider: "manual",
+      walletProvider: "apple_pay",
+      cardBrand: null,
+      cardLast4: null,
+      cardExpMonth: null,
+      cardExpYear: null,
+      cardholderName: null,
+      mobilepayPhoneLast4: null,
+      mobilepayProfileName: null,
+      metadata: {
+        source: "payment_method_screen",
+      },
+    };
+  };
 
   const canContinueToNext = () => {
     if (!selected) return false;
     if (step === "details") {
+      if (selected === "mobilepay") {
+        return sanitizeDigits(mobilePayPhone).length >= 4 && mobilePayName.trim().length > 0;
+      }
+
       return (
-        cardNumber.length >= 12 &&
+        cardDigits.length >= 12 &&
         expiry.length > 3 &&
         cvc.length >= 3 &&
-        name.length > 0
+        name.trim().length > 0
       );
     }
     return true;
@@ -74,13 +186,23 @@ export default function PaymentMethodScreen({
     if (!selected) return;
 
     const nextStep =
-      selected === "card" && step === "choose" ? "details" : "review";
+      selected === "apple_pay"
+        ? "review"
+        : step === "choose"
+          ? "details"
+          : "review";
     setStep(nextStep);
     onStepChange?.(nextStep);
   };
 
   const handlePay = () => {
-    onContinue(paymentLabel);
+    const selection = buildSelection();
+
+    if (!selection) {
+      return;
+    }
+
+    onContinue(selection);
   };
 
   const handleBack = () => {
@@ -104,7 +226,7 @@ export default function PaymentMethodScreen({
 
       <Text style={styles.subtitle}>
         {step === "choose" && "Choose payment method"}
-        {step === "details" && "Enter your card information"}
+        {step === "details" && (selected === "mobilepay" ? "Enter your MobilePay details" : "Enter your card information")}
         {step === "review" && `Pay with ${paymentLabel}`}
       </Text>
 
@@ -189,6 +311,33 @@ export default function PaymentMethodScreen({
         </View>
       )}
 
+      {step === "details" && selected === "mobilepay" && (
+        <View style={styles.detailsForm}>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>MobilePay phone</Text>
+            <TextInput
+              value={mobilePayPhone}
+              onChangeText={setMobilePayPhone}
+              keyboardType="phone-pad"
+              style={styles.input}
+              placeholder="+45 12 34 56 78"
+              placeholderTextColor="#94A3B8"
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Profile name</Text>
+            <TextInput
+              value={mobilePayName}
+              onChangeText={setMobilePayName}
+              style={styles.input}
+              placeholder="John Doe"
+              placeholderTextColor="#94A3B8"
+            />
+          </View>
+        </View>
+      )}
+
       {step === "review" && (
         <View style={styles.reviewCard}>
           <View style={styles.reviewRow}>
@@ -209,9 +358,24 @@ export default function PaymentMethodScreen({
             </>
           )}
 
+          {selected === "mobilepay" && (
+            <>
+              <View style={styles.reviewRow}>
+                <Text style={styles.reviewLabel}>Profile</Text>
+                <Text style={styles.reviewValue}>{mobilePayName || "MobilePay user"}</Text>
+              </View>
+              <View style={styles.reviewRow}>
+                <Text style={styles.reviewLabel}>Phone</Text>
+                <Text style={styles.reviewValue}>
+                  {sanitizeDigits(mobilePayPhone).length >= 4 ? `•••• ${sanitizeDigits(mobilePayPhone).slice(-4)}` : "Not provided"}
+                </Text>
+              </View>
+            </>
+          )}
+
           <View style={styles.reviewRow}>
             <Text style={styles.reviewLabel}>Amount</Text>
-            <Text style={styles.reviewValue}>$0.00</Text>
+            <Text style={styles.reviewValue}>{amountLabel}</Text>
           </View>
         </View>
       )}

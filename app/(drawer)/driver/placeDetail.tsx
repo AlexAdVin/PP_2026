@@ -1,6 +1,7 @@
-import { Dimensions, Image, ImageBackground, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React, { useState } from 'react'
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import React, { useEffect, useState } from 'react'
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import Modal from 'react-native-modal';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -11,10 +12,11 @@ import FooterActionBar from '../../../components/footerNavs/FooterActionBar';
 import AmenitiesList from '../../../components/booking/AmenitiesList';
 import MoreLessComponent from '../../../components/booking/MoreLessComponent';
 import BackBtn from '../../../components/btns/BackBtn';
+import { useLocationStore } from '../../../src/store';
+import { getBookingEnd } from '../../../src/lib/bookingPricing';
+import { transactionAdapter, type LotBookingWindow } from '../../../src/adapters/transactionAdapter';
 
 const { width, height } = Dimensions.get("window");
-
-const SURGE_CHARGE_RATE = 10.5;
 
 const rulesText = 'The gate opens by inserting the 4 digit code. The code is received in the welcoming message, after the booking. FYI: There might be a dog in the yard, however peaceful.'
 const descriptionText = 'Parking space outside the congestion zone within a secure gated area. The space is lit during night and a CCTV camera is mounted for security reasons. Please read the rules for access info!'
@@ -23,11 +25,10 @@ const PlaceDetail = () => {
   const { post } = useLocalSearchParams();
   const marker: any = JSON.parse(Array.isArray(post) ? post[0] : post);
 
-  const coords = { lat: marker.lat, lng: marker.lng }
-
   console.log("PlaceDetail ---- route?.params?.post -->", marker)
 
   const lotsArray: any[] = marker.Lots.items;
+  const { bookingTime } = useLocationStore();
 
   lotsArray.sort((a, b) => a.lotNr - b.lotNr);
 
@@ -38,6 +39,63 @@ const PlaceDetail = () => {
 
   // Modal states
   const [showTPicker, setShowTPicker] = useState(false);
+  const [bookingWindows, setBookingWindows] = useState<LotBookingWindow[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+
+  const selectedLot = lotsArray[checkedLot];
+  const requestedStart = new Date(bookingTime.startTime);
+  const requestedStartIso = requestedStart.toISOString();
+  const requestedEnd = getBookingEnd(requestedStart, bookingTime.duration);
+  const nextAvailableStart = transactionAdapter.findNextAvailableStart(
+    bookingWindows,
+    requestedStart,
+    requestedEnd,
+  );
+
+  useEffect(() => {
+    const lotId = selectedLot?.id;
+
+    if (!lotId) {
+      setBookingWindows([]);
+      return;
+    }
+
+    let isActive = true;
+    setAvailabilityLoading(true);
+
+    transactionAdapter
+      .fetchLotBookingWindows(lotId, requestedStartIso)
+      .then((windows) => {
+        if (isActive) {
+          setBookingWindows(windows);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load lot booking windows', error);
+        if (isActive) {
+          setBookingWindows([]);
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setAvailabilityLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedLot?.id, requestedStartIso]);
+
+  const formattedNextAvailable = nextAvailableStart
+    ? nextAvailableStart.toLocaleString('da-DK', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : null;
 
 
 
@@ -56,6 +114,22 @@ const PlaceDetail = () => {
         <LotsCarousel checkedLot={checkedLot} setCheckedLot={setCheckedLot} lotState={marker} />
 
         <ListingTabs activeFooterTab={aTab} setFooterActiveTab={setATab} />
+
+        {nextAvailableStart && (
+          <BlurView intensity={40} tint="light" style={styles.availabilityClue}>
+            <Text style={styles.availabilityTitle}>Booked for your selected slot</Text>
+            <Text style={styles.availabilityText}>
+              This lot opens again from {formattedNextAvailable}.
+            </Text>
+          </BlurView>
+        )}
+
+        {!nextAvailableStart && availabilityLoading && (
+          <BlurView intensity={35} tint="light" style={styles.availabilityClue}>
+            <Text style={styles.availabilityTitle}>Checking live availability</Text>
+            <Text style={styles.availabilityText}>We are loading the latest booking windows for this lot.</Text>
+          </BlurView>
+        )}
 
         {aTab === 'Information' && <>
           <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentInset={{ top: 0, bottom: height * 0.1 }}>
@@ -108,7 +182,7 @@ const PlaceDetail = () => {
 
         }
 
-        <FooterActionBar setShowTPicker={setShowTPicker} checkedLot={checkedLot} marker={marker} />
+        <FooterActionBar setShowTPicker={setShowTPicker} checkedLot={checkedLot} marker={marker} bookingBlocked={Boolean(nextAvailableStart)} />
 
       </LinearGradient>
 
@@ -148,6 +222,27 @@ const styles = StyleSheet.create({
   },
   txtInIcon: {
     textAlign: 'center',
+  },
+  availabilityClue: {
+    marginHorizontal: width * 0.05,
+    marginTop: height * 0.015,
+    paddingHorizontal: width * 0.04,
+    paddingVertical: width * 0.035,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  availabilityTitle: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  availabilityText: {
+    color: '#1E293B',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
 

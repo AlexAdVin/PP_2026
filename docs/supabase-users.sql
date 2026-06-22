@@ -1,3 +1,6 @@
+grant usage on schema public to postgres, anon, authenticated, service_role;
+grant create on schema public to postgres, service_role;
+
 create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   phone text unique,
@@ -169,6 +172,9 @@ set
   email = excluded.email,
   display_name = excluded.display_name,
   auth_provider = excluded.auth_provider;
+
+grant select, insert, update on public.users to authenticated;
+grant select on public.users to service_role;
 
 alter table public.users enable row level security;
 

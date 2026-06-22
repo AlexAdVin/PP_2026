@@ -20,7 +20,7 @@ const TimeReg = ({ setShowTF }) => {
 
   // Initialize from Zustand store
   const initialStart = new Date(bookingTime.startTime);
-  const initialEnd = new Date(bookingTime.endTime);
+  const initialEnd = new Date(bookingTime.duration);
   const initialDurationHours = Math.max(1, Math.round((initialEnd.getTime() - initialStart.getTime()) / (60 * 60 * 1000)));
   const initialTs = [1, 2, 4].includes(initialDurationHours) ? initialDurationHours : 'other';
 
@@ -29,7 +29,7 @@ const TimeReg = ({ setShowTF }) => {
 
   useEffect(() => {
     setTsTab(initialTs);
-  }, []);
+  }, [initialTs]);
 
   useEffect(() => {
     if (tsTab !== 'other') {

@@ -67,6 +67,10 @@ execute function public.set_updated_at();
 
 For production, prefer the dedicated SQL script instead of manually pasting partial snippets, because the database-side sync trigger remains the durable mirror into `public.users`.
 
+If you ever run `drop schema public cascade; create schema public;`, you also remove the default Supabase grants on the `public` schema. Re-run [docs/supabase-users.sql](c:/Users/aaavu/Documents/TBD/PP_2026_Project/PP_2026/docs/supabase-users.sql) afterward so schema usage is granted back to `anon`, `authenticated`, and `service_role` before testing the app again.
+
+The `users` table also needs table-level grants in addition to RLS policies. The script now grants `select`, `insert`, and `update` on `public.users` to `authenticated`, because the mobile app reads and upserts the current driver's own profile before any host row exists.
+
 ## Row Level Security
 
 ```sql

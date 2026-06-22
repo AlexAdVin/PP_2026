@@ -73,11 +73,27 @@ type ChargerRow = {
 
 type TransactionRow = {
   id: string;
+  booking_reference: string | null;
   lot_id: string;
+  location_id: string | null;
+  host_id: string | null;
   driver_id: string;
   driver_name: string;
+  status: string | null;
+  booked_at: string | null;
   start_booking: string;
   end_booking: string;
+  duration_minutes: number | null;
+  currency_code: string | null;
+  hourly_rate: number | null;
+  surge_multiplier: number | null;
+  parking_amount: number | null;
+  service_fee_amount: number | null;
+  total_amount: number | null;
+  payment_provider: string | null;
+  payment_method_type: string | null;
+  payment_method_label: string | null;
+  payment_captured_at: string | null;
   agreed_price_hr: number;
   surge: number | null;
 };
@@ -120,7 +136,55 @@ type LocationRow = {
   lots?: LotRow[] | null;
 };
 
-const LOCATION_SELECT = `
+const PUBLIC_LOCATION_SELECT = `
+  id,
+  host_id,
+  type,
+  addr_loc,
+  nr_of_lots,
+  hr_price,
+  loc_name,
+  lng,
+  lat,
+  description,
+  dy_price,
+  img,
+  rating,
+  is_active,
+  review_status,
+  publication_status,
+  published_at,
+  parking_fee,
+  lots (
+    id,
+    img,
+    rules,
+    lot_nr,
+    avl_bool,
+    start_avl,
+    end_avl,
+    charger_bool,
+    parking_fee,
+    location_id,
+    lot_availability_windows (
+      id,
+      day,
+      bool,
+      s_t,
+      e_t
+    ),
+    chargers (
+      id,
+      charger_nr,
+      plug_type,
+      power,
+      usage_fee,
+      price_kwh
+    )
+  )
+`;
+
+const HOST_LOCATION_SELECT = `
   id,
   host_id,
   type,
@@ -167,11 +231,27 @@ const LOCATION_SELECT = `
     ),
     transactions (
       id,
+      booking_reference,
       lot_id,
+      location_id,
+      host_id,
       driver_id,
       driver_name,
+      status,
+      booked_at,
       start_booking,
       end_booking,
+      duration_minutes,
+      currency_code,
+      hourly_rate,
+      surge_multiplier,
+      parking_amount,
+      service_fee_amount,
+      total_amount,
+      payment_provider,
+      payment_method_type,
+      payment_method_label,
+      payment_captured_at,
       agreed_price_hr,
       surge
     )
@@ -284,19 +364,6 @@ function mapAvailabilityRow(row: AvailabilityRow) {
   };
 }
 
-function mapTransactionRow(row: TransactionRow) {
-  return {
-    id: row.id,
-    lotID: row.lot_id,
-    driverID: row.driver_id,
-    driverName: row.driver_name,
-    startBooking: row.start_booking,
-    endBooking: row.end_booking,
-    agreedPriceHR: row.agreed_price_hr,
-    surge: row.surge,
-  };
-}
-
 function mapChargerRow(row: ChargerRow) {
   return {
     id: row.id,
@@ -305,6 +372,35 @@ function mapChargerRow(row: ChargerRow) {
     power: row.power,
     usageFee: row.usage_fee,
     pricekWh: row.price_kwh,
+  };
+}
+
+function mapTransactionRow(row: TransactionRow) {
+  return {
+    id: row.id,
+    bookingReference: row.booking_reference,
+    lotID: row.lot_id,
+    locationID: row.location_id,
+    hostID: row.host_id,
+    driverID: row.driver_id,
+    driverName: row.driver_name,
+    status: row.status ?? "confirmed",
+    bookedAt: row.booked_at,
+    startBooking: row.start_booking,
+    endBooking: row.end_booking,
+    durationMinutes: row.duration_minutes,
+    currencyCode: row.currency_code ?? "DKK",
+    hourlyRate: row.hourly_rate ?? row.agreed_price_hr,
+    surgeMultiplier: row.surge_multiplier ?? (row.surge ?? 1),
+    parkingAmount: row.parking_amount ?? row.agreed_price_hr,
+    serviceFeeAmount: row.service_fee_amount ?? 0,
+    totalAmount: row.total_amount ?? row.agreed_price_hr,
+    paymentProvider: row.payment_provider,
+    paymentMethodType: row.payment_method_type,
+    paymentMethodLabel: row.payment_method_label,
+    paymentCapturedAt: row.payment_captured_at,
+    agreedPriceHR: row.agreed_price_hr,
+    surge: row.surge,
   };
 }
 
@@ -417,7 +513,7 @@ function buildLocationPayload(listingData: ListingDataInput, lotDraft: LotDraftI
 async function fetchLocationById(locationId: string) {
   const { data, error } = await supabase
     .from("locations")
-    .select(LOCATION_SELECT)
+    .select(HOST_LOCATION_SELECT)
     .eq("id", locationId)
     .single();
 
@@ -431,7 +527,7 @@ async function fetchLocationById(locationId: string) {
 async function fetchHostLocations(hostId: string) {
   const { data, error } = await supabase
     .from("locations")
-    .select(LOCATION_SELECT)
+    .select(HOST_LOCATION_SELECT)
     .eq("host_id", hostId)
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -508,7 +604,7 @@ export async function fetchCurrentHostLotState() {
 export async function fetchPublishedLocations() {
   const { data, error } = await supabase
     .from("locations")
-    .select(LOCATION_SELECT)
+    .select(PUBLIC_LOCATION_SELECT)
     .eq("publication_status", "published")
     .eq("is_active", true)
     .order("published_at", { ascending: false, nullsFirst: false })
