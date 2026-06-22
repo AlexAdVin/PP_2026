@@ -49,7 +49,7 @@ const PostCard = ({ post, parkingFee, setSelPostId}) => {
               hitSlop={10}
               onPress={() => {
                 setSelectedParkingTarget(post?.id, post?.Lots?.items?.[0]?.id ?? null);
-                router.push({ pathname: '/driver/placeDetail', params: { locationId: post?.id } });
+                router.push({ pathname: '/driver/placeDetail', params: { locationId: post?.id, post: JSON.stringify(post) } });
               }}
               style={[stylesCards.signIn, { alignSelf: 'stretch', width: "70%", backgroundColor:'rgba(255,255,255,0.3)'}]}
             >

@@ -19,40 +19,26 @@ const { width, height } = Dimensions.get("window");
 const rulesText = 'The gate opens by inserting the 4 digit code. The code is received in the welcoming message, after the booking. FYI: There might be a dog in the yard, however peaceful.'
 const descriptionText = 'Parking space outside the congestion zone within a secure gated area. The space is lit during night and a CCTV camera is mounted for security reasons. Please read the rules for access info!'
 
-const getPreferredLotIndex = (lots: any[], preferredLotId?: string | string[] | null) => {
-  const resolvedPreferredLotId = Array.isArray(preferredLotId) ? preferredLotId[0] : preferredLotId;
-
-  if (resolvedPreferredLotId) {
-    const preferredIndex = lots.findIndex((lot: any) => lot?.id === resolvedPreferredLotId);
-
-    if (preferredIndex >= 0) {
-      return preferredIndex;
-    }
-  }
-
-  return lots.length >= 3 ? 1 : 0;
-};
-
 const PlaceDetail = () => {
   const { post, locationId, lotId } = useLocalSearchParams();
-  const cachedLocations = useLocationStore((state) => state.driverDiscovery.locations);
-  const selectedLocationId = useLocationStore((state) => state.selectedLocationId);
-  const setSelectedParkingTarget = useLocationStore((state) => state.setSelectedParkingTarget);
+  const { bookingTime, driverDiscovery, selectedLocationId, setSelectedParkingTarget } = useLocationStore((state) => ({
+    bookingTime: state.bookingTime,
+    driverDiscovery: state.driverDiscovery,
+    selectedLocationId: state.selectedLocationId,
+    setSelectedParkingTarget: state.setSelectedParkingTarget,
+  }));
   const resolvedLocationId = Array.isArray(locationId) ? locationId[0] : (locationId ?? selectedLocationId);
   const resolvedLotId = Array.isArray(lotId) ? lotId[0] : lotId;
-  const fallbackMarker = post ? JSON.parse(Array.isArray(post) ? post[0] : post) : null;
-  const marker: any = (cachedLocations ?? []).find((location: any) => location?.id === resolvedLocationId) ?? fallbackMarker;
-
-  console.log("PlaceDetail ---- route?.params?.post -->", marker)
+  const routeMarker = post ? JSON.parse(Array.isArray(post) ? post[0] : post) : null;
+  const marker: any = routeMarker ?? (driverDiscovery.locations ?? []).find((location: any) => location?.id === resolvedLocationId) ?? null;
 
   const lotsArray: any[] = useMemo(
     () => [...(marker?.Lots?.items ?? [])].sort((a, b) => a.lotNr - b.lotNr),
     [marker?.Lots?.items],
   );
-  const { bookingTime } = useLocationStore();
 
   // Lots carousel states
-  const [checkedLot, setCheckedLot] = useState<number>(() => getPreferredLotIndex(lotsArray, resolvedLotId));
+  const [checkedLot, setCheckedLot] = useState<number>(() => lotsArray.length >= 3 ? 1 : 0);
 
   const [aTab, setATab] = useState('Information')
 
@@ -87,7 +73,10 @@ const PlaceDetail = () => {
       return;
     }
 
-    const nextIndex = getPreferredLotIndex(lotsArray, resolvedLotId);
+    const preferredIndex = resolvedLotId
+      ? lotsArray.findIndex((lot: any) => lot?.id === resolvedLotId)
+      : -1;
+    const nextIndex = preferredIndex >= 0 ? preferredIndex : (lotsArray.length >= 3 ? 1 : 0);
 
     setCheckedLot(nextIndex);
     setSelectedParkingTarget(marker.id, lotsArray[nextIndex]?.id ?? null);

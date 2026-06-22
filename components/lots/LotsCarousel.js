@@ -9,13 +9,12 @@ const { width, height } = Dimensions.get("screen");
 let TOPCAR;
 try {
   TOPCAR = require("../../assets/lotImg/carTopV_W.png");
-} catch (e) {
+} catch {
   // Fallback if local asset not found
   console.warn("Local car image not found, using fallback");
   TOPCAR = null;
 }
 
-const ONE_SECOND_IN_MS = 1000;
 const ITEM_SIZE = width * 0.23;
 const ITEM_SPACING = (width - ITEM_SIZE) / 2;
 
@@ -27,8 +26,13 @@ const LotsCarousel = ({ checkedLot, setCheckedLot, lotState }) => {
 
   const _pLOTS = useRef();
   const scrollX = useRef(new Animated.Value(0)).current;
+  const didApplyInitialIndex = useRef(false);
 
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
+    if (!didApplyInitialIndex.current && nrOfLots > 2 && checkedLot === 1) {
+      return;
+    }
+
     if (viewableItems.length > 0) {
       const newIndex = viewableItems[0]?.index;
       if (newIndex !== checkedLot) {
@@ -39,10 +43,11 @@ const LotsCarousel = ({ checkedLot, setCheckedLot, lotState }) => {
   });
 
   useEffect(() => {
-    if (_pLOTS.current && typeof checkedLot === 'number') {
-      _pLOTS.current.scrollToIndex({ index: checkedLot, animated: true });
+    if (_pLOTS.current && typeof checkedLot === 'number' && nrOfLots > 2) {
+      _pLOTS.current.scrollToIndex({ index: checkedLot, animated: false });
+      didApplyInitialIndex.current = true;
     }
-  }, [checkedLot]);
+  }, [checkedLot, nrOfLots]);
 
   const transactionsData = lotState?.Lots ? (lotState.Lots.items) : (lotState);
 
@@ -61,6 +66,7 @@ const LotsCarousel = ({ checkedLot, setCheckedLot, lotState }) => {
           onMomentumScrollEnd={(event) => {
             const offsetX = event.nativeEvent.contentOffset.x;
             const newIndex = Math.min(Math.max(Math.round(offsetX / ITEM_SIZE), 0), nrOfLots - 1);
+            didApplyInitialIndex.current = true;
             if (newIndex !== checkedLot) {
               setCheckedLot(newIndex);
               triggerHaptic('medium');
@@ -68,7 +74,7 @@ const LotsCarousel = ({ checkedLot, setCheckedLot, lotState }) => {
           }}
           initialNumToRender={3}
           maxToRenderPerBatch={2}
-          initialScrollIndex={checkedLot}
+          initialScrollIndex={nrOfLots >= 3 ? 1 : 0}
           getItemLayout={(data, index) => ({
             length: ITEM_SIZE,
             offset: ITEM_SIZE * index,
