@@ -21,12 +21,11 @@ const descriptionText = 'Parking space outside the congestion zone within a secu
 
 const PlaceDetail = () => {
   const { post, locationId, lotId } = useLocalSearchParams();
-  const { bookingTime, driverDiscovery, selectedLocationId, setSelectedParkingTarget } = useLocationStore((state) => ({
-    bookingTime: state.bookingTime,
-    driverDiscovery: state.driverDiscovery,
-    selectedLocationId: state.selectedLocationId,
-    setSelectedParkingTarget: state.setSelectedParkingTarget,
-  }));
+  const bookingTime = useLocationStore((state) => state.bookingTime);
+  const driverDiscovery = useLocationStore((state) => state.driverDiscovery);
+  const selectedLocationId = useLocationStore((state) => state.selectedLocationId);
+  const selectedLotId = useLocationStore((state) => state.selectedLotId);
+  const setSelectedParkingTarget = useLocationStore((state) => state.setSelectedParkingTarget);
   const resolvedLocationId = Array.isArray(locationId) ? locationId[0] : (locationId ?? selectedLocationId);
   const resolvedLotId = Array.isArray(lotId) ? lotId[0] : lotId;
   const routeMarker = post ? JSON.parse(Array.isArray(post) ? post[0] : post) : null;
@@ -77,10 +76,14 @@ const PlaceDetail = () => {
       ? lotsArray.findIndex((lot: any) => lot?.id === resolvedLotId)
       : -1;
     const nextIndex = preferredIndex >= 0 ? preferredIndex : (lotsArray.length >= 3 ? 1 : 0);
+    const nextLotId = lotsArray[nextIndex]?.id ?? null;
 
     setCheckedLot(nextIndex);
-    setSelectedParkingTarget(marker.id, lotsArray[nextIndex]?.id ?? null);
-  }, [lotIdsKey, lotsArray, marker?.id, resolvedLotId, setSelectedParkingTarget]);
+
+    if (selectedLocationId !== marker.id || selectedLotId !== nextLotId) {
+      setSelectedParkingTarget(marker.id, nextLotId);
+    }
+  }, [lotIdsKey, lotsArray, marker?.id, resolvedLotId, selectedLocationId, selectedLotId, setSelectedParkingTarget]);
 
   const formattedNextAvailable = nextAvailableStart
     ? nextAvailableStart.toLocaleString('da-DK', {
