@@ -24,11 +24,16 @@ const PlaceDetail = () => {
   const bookingTime = useLocationStore((state) => state.bookingTime);
   const driverDiscovery = useLocationStore((state) => state.driverDiscovery);
   const selectedLocationId = useLocationStore((state) => state.selectedLocationId);
-  const selectedLotId = useLocationStore((state) => state.selectedLotId);
   const setSelectedParkingTarget = useLocationStore((state) => state.setSelectedParkingTarget);
   const resolvedLocationId = Array.isArray(locationId) ? locationId[0] : (locationId ?? selectedLocationId);
   const resolvedLotId = Array.isArray(lotId) ? lotId[0] : lotId;
-  const routeMarker = post ? JSON.parse(Array.isArray(post) ? post[0] : post) : null;
+  const routeMarker = useMemo(() => {
+    if (!post) {
+      return null;
+    }
+
+    return JSON.parse(Array.isArray(post) ? post[0] : post);
+  }, [post]);
   const marker: any = routeMarker ?? (driverDiscovery.locations ?? []).find((location: any) => location?.id === resolvedLocationId) ?? null;
 
   const lotsArray: any[] = useMemo(
@@ -80,10 +85,12 @@ const PlaceDetail = () => {
 
     setCheckedLot(nextIndex);
 
-    if (selectedLocationId !== marker.id || selectedLotId !== nextLotId) {
+    const currentSelection = useLocationStore.getState();
+
+    if (currentSelection.selectedLocationId !== marker.id || currentSelection.selectedLotId !== nextLotId) {
       setSelectedParkingTarget(marker.id, nextLotId);
     }
-  }, [lotIdsKey, lotsArray, marker?.id, resolvedLotId, selectedLocationId, selectedLotId, setSelectedParkingTarget]);
+  }, [lotIdsKey, lotsArray, marker?.id, resolvedLotId, setSelectedParkingTarget]);
 
   const formattedNextAvailable = nextAvailableStart
     ? nextAvailableStart.toLocaleString('da-DK', {

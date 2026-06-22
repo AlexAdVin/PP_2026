@@ -12,16 +12,23 @@ import { useLocationStore } from '../../src/store';
 const { width, height } = Dimensions.get("screen");
 
 const TimeReg = ({ setShowTF }) => {
-  const { bookingTime, setBookingTime } = useLocationStore();
+  const bookingTime = useLocationStore((state) => state.bookingTime);
+  const setBookingTime = useLocationStore((state) => state.setBookingTime);
   
   const [tsTab, setTsTab] = useState(1);
   const [arrivalTab, setArrivalTab] = useState("Time of arrival");
   const [durationTab, setDurationTab] = useState(null);
 
-  // Initialize from Zustand store
-  const initialStart = new Date(bookingTime.startTime);
-  const initialEnd = new Date(bookingTime.duration);
-  const initialDurationHours = Math.max(1, Math.round((initialEnd.getTime() - initialStart.getTime()) / (60 * 60 * 1000)));
+  // Start from now on each open; duration still reuses the stored selection.
+  const initialStart = React.useMemo(() => new Date(), []);
+  const initialEnd = React.useMemo(() => {
+    const storedDuration = new Date(bookingTime.duration);
+    const nextDuration = new Date(initialStart);
+
+    nextDuration.setHours(storedDuration.getHours(), storedDuration.getMinutes(), 0, 0);
+    return nextDuration;
+  }, [bookingTime.duration, initialStart]);
+  const initialDurationHours = Math.max(1, initialEnd.getHours());
   const initialTs = [1, 2, 4].includes(initialDurationHours) ? initialDurationHours : 'other';
 
   const [date, setDate] = useState(initialStart);
@@ -33,10 +40,11 @@ const TimeReg = ({ setShowTF }) => {
 
   useEffect(() => {
     if (tsTab !== 'other') {
-      const nextDate = new Date(new Date().setHours(tsTab, 0, 0, 0));
+      const nextDate = new Date(date);
+      nextDate.setHours(tsTab, 0, 0, 0);
       setDate2(nextDate);
     }
-  }, [tsTab]);
+  }, [date, tsTab]);
 
   // Save to Zustand store only when user presses Save/Next
   const recordStartTime = (start, duration) => {
@@ -122,7 +130,7 @@ const TimeReg = ({ setShowTF }) => {
         {arrivalTab === 'Time of arrival' && (
           <View style={{ flex: 0.65, justifyContent: 'center' }}>
             <DateTimePicker
-              testID='dateTimePicker'
+              testID='ArrivalTimePicker'
               value={date}
               mode={'time'}
               minuteInterval={5}
@@ -130,7 +138,7 @@ const TimeReg = ({ setShowTF }) => {
               themeVariant='dark'
               is24Hour={true}
               display={Platform.OS === 'ios' ? 'spinner' : 'clock'}
-              onValueChange={onChangeArr}
+              onChange={onChangeArr}
               style={styles.datePicker}
             />
           </View>
@@ -138,7 +146,7 @@ const TimeReg = ({ setShowTF }) => {
 
         {tsTab === 'other' && arrivalTab === 'Duration' && (
           <DateTimePicker
-            testID='DateTimePicker'
+            testID='DurationTimePicker'
             value={date2 || new Date()}
             mode={Platform.OS === 'ios' ? 'countdown' : 'time'}
             minuteInterval={15}
