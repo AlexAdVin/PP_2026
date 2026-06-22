@@ -1,7 +1,6 @@
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React, { useEffect, useMemo, useState } from 'react'
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import Modal from 'react-native-modal';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -20,6 +19,20 @@ const { width, height } = Dimensions.get("window");
 const rulesText = 'The gate opens by inserting the 4 digit code. The code is received in the welcoming message, after the booking. FYI: There might be a dog in the yard, however peaceful.'
 const descriptionText = 'Parking space outside the congestion zone within a secure gated area. The space is lit during night and a CCTV camera is mounted for security reasons. Please read the rules for access info!'
 
+const getPreferredLotIndex = (lots: any[], preferredLotId?: string | string[] | null) => {
+  const resolvedPreferredLotId = Array.isArray(preferredLotId) ? preferredLotId[0] : preferredLotId;
+
+  if (resolvedPreferredLotId) {
+    const preferredIndex = lots.findIndex((lot: any) => lot?.id === resolvedPreferredLotId);
+
+    if (preferredIndex >= 0) {
+      return preferredIndex;
+    }
+  }
+
+  return lots.length >= 3 ? 1 : 0;
+};
+
 const PlaceDetail = () => {
   const { post, locationId, lotId } = useLocalSearchParams();
   const cachedLocations = useLocationStore((state) => state.driverDiscovery.locations);
@@ -32,13 +45,14 @@ const PlaceDetail = () => {
 
   console.log("PlaceDetail ---- route?.params?.post -->", marker)
 
-  const lotsArray: any[] = useMemo(() => [...(marker?.Lots?.items ?? [])], [marker?.Lots?.items]);
+  const lotsArray: any[] = useMemo(
+    () => [...(marker?.Lots?.items ?? [])].sort((a, b) => a.lotNr - b.lotNr),
+    [marker?.Lots?.items],
+  );
   const { bookingTime } = useLocationStore();
 
-  lotsArray.sort((a, b) => a.lotNr - b.lotNr);
-
   // Lots carousel states
-  const [checkedLot, setCheckedLot] = useState<number>(0);
+  const [checkedLot, setCheckedLot] = useState<number>(() => getPreferredLotIndex(lotsArray, resolvedLotId));
 
   const [aTab, setATab] = useState('Information')
 
@@ -73,12 +87,7 @@ const PlaceDetail = () => {
       return;
     }
 
-    const preferredLotIndex = resolvedLotId
-      ? lotsArray.findIndex((lot: any) => lot?.id === resolvedLotId)
-      : -1;
-
-    const fallbackIndex = lotsArray.length > 1 ? 1 : 0;
-    const nextIndex = preferredLotIndex >= 0 ? preferredLotIndex : fallbackIndex;
+    const nextIndex = getPreferredLotIndex(lotsArray, resolvedLotId);
 
     setCheckedLot(nextIndex);
     setSelectedParkingTarget(marker.id, lotsArray[nextIndex]?.id ?? null);
@@ -115,15 +124,6 @@ const PlaceDetail = () => {
         <LotsCarousel checkedLot={checkedLot} setCheckedLot={setCheckedLot} lotState={marker} />
 
         <ListingTabs activeFooterTab={aTab} setFooterActiveTab={setATab} />
-
-        {nextAvailableStart && (
-          <BlurView intensity={40} tint="light" style={styles.availabilityClue}>
-            <Text style={styles.availabilityTitle}>Booked for your selected slot</Text>
-            <Text style={styles.availabilityText}>
-              This lot opens again from {formattedNextAvailable}.
-            </Text>
-          </BlurView>
-        )}
 
         {aTab === 'Information' && <>
           <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentInset={{ top: 0, bottom: height * 0.1 }}>
@@ -176,7 +176,13 @@ const PlaceDetail = () => {
 
         }
 
-        <FooterActionBar setShowTPicker={setShowTPicker} checkedLot={checkedLot} marker={marker} bookingBlocked={Boolean(nextAvailableStart)} />
+        <FooterActionBar
+          setShowTPicker={setShowTPicker}
+          checkedLot={checkedLot}
+          marker={marker}
+          bookingBlocked={Boolean(nextAvailableStart)}
+          formattedNextAvailable={formattedNextAvailable ?? undefined}
+        />
 
       </LinearGradient>
 
@@ -216,27 +222,6 @@ const styles = StyleSheet.create({
   },
   txtInIcon: {
     textAlign: 'center',
-  },
-  availabilityClue: {
-    marginHorizontal: width * 0.05,
-    marginTop: height * 0.015,
-    paddingHorizontal: width * 0.04,
-    paddingVertical: width * 0.035,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  availabilityTitle: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  availabilityText: {
-    color: '#1E293B',
-    fontSize: 14,
-    lineHeight: 20,
   },
 });
 
