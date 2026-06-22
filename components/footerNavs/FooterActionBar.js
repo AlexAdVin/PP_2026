@@ -9,7 +9,7 @@ import { useLocationStore } from '../../src/store';
 
 const { width, height } = Dimensions.get("window");
 
-const FooterActionBar = ({ setShowTPicker, checkedLot, marker, bookingBlocked = false, formattedNextAvailable = '' }) => {
+const FooterActionBar = ({ setShowTPicker, checkedLot, marker, bookingBlocked = false, formattedNextAvailable = '', blockedMessage = '' }) => {
   const router = useRouter();
   const { bookingTime } = useLocationStore();
 
@@ -38,10 +38,10 @@ const FooterActionBar = ({ setShowTPicker, checkedLot, marker, bookingBlocked = 
       {bookingBlocked ? (
         <View style={{ flex: 1, marginHorizontal: width * 0.03, paddingHorizontal: width * 0.025 }}>
           <Text style={[styles.exText, { color: 'rgba(255,255,255,0.3)', fontSize: 16 }]} numberOfLines={1}>
-            This lot opens again from
+            {formattedNextAvailable ? 'This lot opens again from' : 'This lot is unavailable'}
           </Text>
           <Text style={[styles.exText, { color: '#fff', fontSize: 18 }]} numberOfLines={1}>
-            {formattedNextAvailable}
+            {formattedNextAvailable || blockedMessage}
           </Text>
         </View>
       ) : (

@@ -50,6 +50,7 @@ const PlaceDetail = () => {
   const [showTPicker, setShowTPicker] = useState(false);
 
   const selectedLot = lotsArray[checkedLot];
+  const lotIsBookable = selectedLot?.avlBool !== false;
   const requestedStart = new Date(bookingTime.startTime);
   const requestedEnd = getBookingEnd(requestedStart, bookingTime.duration);
   const bookingWindows = [...(selectedLot?.Transactions?.items ?? [])];
@@ -101,6 +102,8 @@ const PlaceDetail = () => {
         minute: '2-digit',
       })
     : null;
+  const bookingBlocked = !lotIsBookable || Boolean(nextAvailableStart);
+  const blockedMessage = !lotIsBookable ? 'This lot is currently unavailable' : undefined;
 
   if (!marker) {
     return null;
@@ -179,8 +182,9 @@ const PlaceDetail = () => {
           setShowTPicker={setShowTPicker}
           checkedLot={checkedLot}
           marker={marker}
-          bookingBlocked={Boolean(nextAvailableStart)}
+          bookingBlocked={bookingBlocked}
           formattedNextAvailable={formattedNextAvailable ?? undefined}
+          blockedMessage={blockedMessage}
         />
 
       </LinearGradient>

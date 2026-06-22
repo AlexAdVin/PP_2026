@@ -21,7 +21,17 @@ const { width, height } = Dimensions.get("window");
 
 const cancelPolicy = 'I agree with the House Rules, Cancellation Policy and the Guest Refund Policy. I understand and agree to pay the total amount shown which include Service Fees.'
 
-const CONFLICT_MESSAGE_FRAGMENT = 'already booked for that time';
+const RECOVERABLE_AVAILABILITY_MESSAGE_FRAGMENTS = [
+  'already booked for that time',
+  'not available for booking',
+  'lot is not bookable',
+];
+
+const isRecoverableAvailabilityError = (message: string) => {
+  const normalizedMessage = message.toLowerCase();
+
+  return RECOVERABLE_AVAILABILITY_MESSAGE_FRAGMENTS.some((fragment) => normalizedMessage.includes(fragment));
+};
 
 const Pay = () => {
   const { hrPrice, lotID, locationId } = useLocalSearchParams();
@@ -175,7 +185,7 @@ const Pay = () => {
 
       const errorMessage = error?.message ?? 'Please try a different time slot.';
 
-      if (errorMessage.toLowerCase().includes(CONFLICT_MESSAGE_FRAGMENT)) {
+      if (isRecoverableAvailabilityError(errorMessage)) {
         await handleConflictRecovery(errorMessage);
       } else {
         Alert.alert('Could not complete booking', errorMessage);

@@ -110,10 +110,12 @@ const LotsCarousel = ({ checkedLot, setCheckedLot, lotState }) => {
               outputRange: [.8, 1, .8]
             });
 
-            const availabilityStatus = getAvailabilityStatus(
-              Transactions?.items,
-              new Date().toISOString()
-            );
+            const availabilityStatus = avlBool === false
+              ? 'Unavailable'
+              : getAvailabilityStatus(
+                  Transactions?.items,
+                  new Date().toISOString()
+                );
 
             return (
               <Animated.View style={{ opacity, transform: [{ scale }], width: ITEM_SIZE }}>
@@ -127,7 +129,7 @@ const LotsCarousel = ({ checkedLot, setCheckedLot, lotState }) => {
                         resizeMode="contain"
                       />
                     ) : (
-                      <Text style={[stylesLotsCarousel.avlTxt, { color: availabilityStatus === 'Available' ? '#4CAF50' : '#FF9800' }]}>
+                      <Text style={[stylesLotsCarousel.avlTxt, { color: availabilityStatus === 'Available' ? '#4CAF50' : '#FF9800' }]}> 
 
                         {availabilityStatus}
                       </Text>
@@ -143,19 +145,19 @@ const LotsCarousel = ({ checkedLot, setCheckedLot, lotState }) => {
           <Text style={stylesLotsCarousel.heading}>1</Text>
           <View style={[stylesLotsCarousel.parkContOutter, stylesLotsCarousel.parkContOne]}>
             {transactionsData[checkedLot]?.Transactions ? (
-              getAvailabilityStatus(transactionsData[checkedLot].Transactions?.items, new Date().toISOString()) === 'Busy' && TOPCAR ? (
+              (transactionsData[checkedLot]?.avlBool === false ? 'Unavailable' : getAvailabilityStatus(transactionsData[checkedLot].Transactions?.items, new Date().toISOString())) === 'Busy' && TOPCAR ? (
                 <Image 
                   style={stylesLotsCarousel.topCarImg}
                   source={TOPCAR}
                   resizeMode="contain"
                 />
               ) : (
-                <Text style={[stylesLotsCarousel.avlTxt, { color: getAvailabilityStatus(transactionsData[checkedLot].Transactions?.items, new Date().toISOString()) === 'Available' ? '#4CAF50' : '#FF9800' }]}>
-                  {getAvailabilityStatus(transactionsData[checkedLot].Transactions?.items, new Date().toISOString())}
+                <Text style={[stylesLotsCarousel.avlTxt, { color: (transactionsData[checkedLot]?.avlBool === false ? 'Unavailable' : getAvailabilityStatus(transactionsData[checkedLot].Transactions?.items, new Date().toISOString())) === 'Available' ? '#4CAF50' : '#FF9800' }]}>
+                  {transactionsData[checkedLot]?.avlBool === false ? 'Unavailable' : getAvailabilityStatus(transactionsData[checkedLot].Transactions?.items, new Date().toISOString())}
                 </Text>
               )
             ) : (
-              <Text style={stylesLotsCarousel.avlTxt}>Available</Text>
+              <Text style={stylesLotsCarousel.avlTxt}>{transactionsData[checkedLot]?.avlBool === false ? 'Unavailable' : 'Available'}</Text>
             )}
           </View>
         </View>
