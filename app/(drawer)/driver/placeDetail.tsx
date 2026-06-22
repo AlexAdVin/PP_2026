@@ -1,5 +1,5 @@
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Modal from 'react-native-modal';
@@ -14,7 +14,6 @@ import MoreLessComponent from '../../../components/booking/MoreLessComponent';
 import BackBtn from '../../../components/btns/BackBtn';
 import { useLocationStore } from '../../../src/store';
 import { getBookingEnd } from '../../../src/lib/bookingPricing';
-import { transactionAdapter, type LotBookingWindow } from '../../../src/adapters/transactionAdapter';
 
 const { width, height } = Dimensions.get("window");
 
@@ -22,70 +21,68 @@ const rulesText = 'The gate opens by inserting the 4 digit code. The code is rec
 const descriptionText = 'Parking space outside the congestion zone within a secure gated area. The space is lit during night and a CCTV camera is mounted for security reasons. Please read the rules for access info!'
 
 const PlaceDetail = () => {
-  const { post } = useLocalSearchParams();
-  const marker: any = JSON.parse(Array.isArray(post) ? post[0] : post);
+  const { post, locationId, lotId } = useLocalSearchParams();
+  const cachedLocations = useLocationStore((state) => state.driverDiscovery.locations);
+  const selectedLocationId = useLocationStore((state) => state.selectedLocationId);
+  const setSelectedParkingTarget = useLocationStore((state) => state.setSelectedParkingTarget);
+  const resolvedLocationId = Array.isArray(locationId) ? locationId[0] : (locationId ?? selectedLocationId);
+  const resolvedLotId = Array.isArray(lotId) ? lotId[0] : lotId;
+  const fallbackMarker = post ? JSON.parse(Array.isArray(post) ? post[0] : post) : null;
+  const marker: any = (cachedLocations ?? []).find((location: any) => location?.id === resolvedLocationId) ?? fallbackMarker;
 
   console.log("PlaceDetail ---- route?.params?.post -->", marker)
 
-  const lotsArray: any[] = marker.Lots.items;
+  const lotsArray: any[] = useMemo(() => [...(marker?.Lots?.items ?? [])], [marker?.Lots?.items]);
   const { bookingTime } = useLocationStore();
 
   lotsArray.sort((a, b) => a.lotNr - b.lotNr);
 
   // Lots carousel states
-  const [checkedLot, setCheckedLot] = useState<number>(lotsArray.length > 1 ? 1 : 0);
+  const [checkedLot, setCheckedLot] = useState<number>(0);
 
   const [aTab, setATab] = useState('Information')
 
   // Modal states
   const [showTPicker, setShowTPicker] = useState(false);
-  const [bookingWindows, setBookingWindows] = useState<LotBookingWindow[]>([]);
-  const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
   const selectedLot = lotsArray[checkedLot];
   const requestedStart = new Date(bookingTime.startTime);
-  const requestedStartIso = requestedStart.toISOString();
   const requestedEnd = getBookingEnd(requestedStart, bookingTime.duration);
-  const nextAvailableStart = transactionAdapter.findNextAvailableStart(
-    bookingWindows,
-    requestedStart,
-    requestedEnd,
-  );
+  const bookingWindows = [...(selectedLot?.Transactions?.items ?? [])];
+  const lotIdsKey = lotsArray.map((lot: any) => lot?.id ?? '').join('|');
+
+  const nextAvailableStart = bookingWindows
+    .sort((left: any, right: any) => new Date(left.startBooking).getTime() - new Date(right.startBooking).getTime())
+    .reduce((nextAvailable: Date | null, booking: any) => {
+      const bookingStart = new Date(booking?.startBooking);
+      const bookingEnd = new Date(booking?.endBooking);
+
+      if (requestedStart >= bookingEnd || requestedEnd <= bookingStart) {
+        return nextAvailable;
+      }
+
+      if (!nextAvailable) {
+        return bookingEnd;
+      }
+
+      return bookingStart <= nextAvailable ? new Date(Math.max(nextAvailable.getTime(), bookingEnd.getTime())) : nextAvailable;
+    }, null);
 
   useEffect(() => {
-    const lotId = selectedLot?.id;
-
-    if (!lotId) {
-      setBookingWindows([]);
+    if (!marker?.id) {
       return;
     }
 
-    let isActive = true;
-    setAvailabilityLoading(true);
+    const preferredLotIndex = resolvedLotId
+      ? lotsArray.findIndex((lot: any) => lot?.id === resolvedLotId)
+      : -1;
 
-    transactionAdapter
-      .fetchLotBookingWindows(lotId, requestedStartIso)
-      .then((windows) => {
-        if (isActive) {
-          setBookingWindows(windows);
-        }
-      })
-      .catch((error) => {
-        console.error('Failed to load lot booking windows', error);
-        if (isActive) {
-          setBookingWindows([]);
-        }
-      })
-      .finally(() => {
-        if (isActive) {
-          setAvailabilityLoading(false);
-        }
-      });
+    const fallbackIndex = lotsArray.length > 1 ? 1 : 0;
+    const nextIndex = preferredLotIndex >= 0 ? preferredLotIndex : fallbackIndex;
 
-    return () => {
-      isActive = false;
-    };
-  }, [selectedLot?.id, requestedStartIso]);
+    setCheckedLot(nextIndex);
+    setSelectedParkingTarget(marker.id, lotsArray[nextIndex]?.id ?? null);
+  }, [lotIdsKey, lotsArray, marker?.id, resolvedLotId, setSelectedParkingTarget]);
 
   const formattedNextAvailable = nextAvailableStart
     ? nextAvailableStart.toLocaleString('da-DK', {
@@ -96,6 +93,10 @@ const PlaceDetail = () => {
         minute: '2-digit',
       })
     : null;
+
+  if (!marker) {
+    return null;
+  }
 
 
 
@@ -121,13 +122,6 @@ const PlaceDetail = () => {
             <Text style={styles.availabilityText}>
               This lot opens again from {formattedNextAvailable}.
             </Text>
-          </BlurView>
-        )}
-
-        {!nextAvailableStart && availabilityLoading && (
-          <BlurView intensity={35} tint="light" style={styles.availabilityClue}>
-            <Text style={styles.availabilityTitle}>Checking live availability</Text>
-            <Text style={styles.availabilityText}>We are loading the latest booking windows for this lot.</Text>
           </BlurView>
         )}
 

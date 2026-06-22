@@ -129,7 +129,8 @@ Host listing creation is now a two-stage process:
 - Each lot draft contains availability dates, weekly availability times, charger configuration, rules, and transaction placeholders.
 - Listing creation is preceded by two standalone intro routes so the actual editing screens stay focused on form and settings responsibilities only.
 - Final save calls `src/adapters/hostListingPersistenceAdapter.ts`, which upserts the host profile and creates the full location graph in Supabase through `public.create_host_listing(jsonb)`. The store then hydrates the canonical persisted location back into local host state.
-- Driver booking confirmation now calls `src/adapters/transactionAdapter.ts`, which writes the booking through `public.create_booking_transaction(jsonb)` and reads public booking windows through `public.get_lot_booking_windows(...)` for availability checks.
+- Driver booking confirmation now calls `src/adapters/transactionAdapter.ts`, which writes the booking through `public.create_booking_transaction(jsonb)`.
+- Driver discovery reads now call `src/adapters/publicLocationAdapter.ts`, which fetches one boundary-scoped Supabase payload through `public.list_public_locations_in_bounds(...)` and stores it in persisted Zustand state for downstream screens.
 
 This keeps Expo 54-compatible UI flow and state management in place while leaving the actual backend write contract behind a single adapter boundary.
 

@@ -2,6 +2,8 @@
 
 This setup keeps `public.users` as the single identity table while allowing any authenticated driver to become a host only when they publish the first location.
 
+No Supabase GraphQL configuration is required for the driver discovery flow implemented here. The app uses one bounded Supabase RPC payload per active map boundary/filter state instead of a GraphQL endpoint.
+
 The role model is additive, not exclusive: a user is always a driver in the app, and once the first listing is published that same user also becomes a host. The same auth identity can still search, book parking, and manage owned listings.
 
 ## Ownership Model
@@ -53,6 +55,9 @@ If you manage SQL migrations explicitly, copy [docs/supabase-hosting.sql](c:/Use
 - `public.create_host_listing(input_payload jsonb)`
 - `public.get_lot_booking_windows(input_lot_id uuid, input_window_start timestamptz, input_window_end timestamptz)`
 - `public.create_booking_transaction(input_payload jsonb)`
+- `public.build_public_location_payload(input_location_id uuid)`
+- `public.get_public_location_by_id(input_location_id uuid)`
+- `public.list_public_locations_in_bounds(...)`
 
 The `create_host_listing` RPC is the critical production boundary because it persists the full location graph in one transaction instead of relying on many client-side inserts.
 
@@ -82,8 +87,22 @@ The app does not store full PAN values, CVC codes, or a full MobilePay phone num
 - `src/adapters/hostLocationAdapter.ts`: full listing create and read mapping between Supabase rows and the app's existing nested location shape.
 - `src/adapters/hostListingPersistenceAdapter.ts`: save boundary used by `src/hostStore.js` when the host finishes the create-listing flow.
 - `src/adapters/hostDatabaseAdapter.ts`: current host read adapter for Hosting Hub hydration.
-- `src/adapters/publicLocationAdapter.ts`: published location read adapter for the driver map.
-- `src/adapters/transactionAdapter.ts`: driver booking create flow and public lot booking-window reads for availability checks.
+- `src/adapters/publicLocationAdapter.ts`: one-request public location discovery adapter for the driver map and single-location refreshes.
+- `src/adapters/transactionAdapter.ts`: driver booking create flow and authoritative booking write boundary.
+
+## Driver Discovery Cache
+
+The driver flow now uses one boundary-scoped discovery fetch and then keeps the payload in local Zustand state persisted through AsyncStorage.
+
+- Home screen requests published locations only after map bounds are available.
+- The request is keyed by `activeTab + filters + viewport`.
+- The fetch itself is a single Supabase RPC call that returns the nested published locations inside the current boundary, including only sanitized future booking windows per lot.
+- The resulting nested location payload is stored in `useLocationStore().driverDiscovery`.
+- Downstream screens such as place detail resolve the selected location from the local cache by `locationId` instead of re-querying while the user scrolls lots in the carousel.
+- The cache is refreshed only at explicit consistency boundaries, such as a booking conflict or a future manual refresh flow.
+- Booking conflicts now trigger a single-location refresh through `public.get_public_location_by_id(...)` and can surface an alternative-lot suggestion without re-querying per carousel change.
+
+Current filter UI is still placeholder-only, but the cache and adapter now accept a filter object so the driver discovery query can stay boundary-scoped once the filter screen is implemented.
 
 ## Current Flow
 
@@ -96,14 +115,16 @@ The app does not store full PAN values, CVC codes, or a full MobilePay phone num
 7. Hosting Hub fetches owned locations from Supabase.
 8. The driver map fetches published active locations from Supabase.
 9. The driver pay screen opens a structured payment-method modal and calls `create_booking_transaction` on successful confirm.
-10. Place detail fetches public booking windows through `get_lot_booking_windows` and blocks booking when the selected lot is already reserved for the requested time.
+10. Place detail reads lot booking windows from the cached driver discovery payload and blocks booking when the selected lot is already reserved for the requested time.
+11. If payment fails because the lot was just taken, the app refreshes only that location from Supabase, updates the local cache, and suggests a locally computed alternative lot when available.
 
 ## Scope Today
 
 - Create host profile on first publish: implemented
 - Create location with lots, availability, and chargers: implemented
 - Transaction records on driver booking: implemented
-- Public booking-window availability checks on place detail: implemented
+- Cached booking-window availability checks on place detail: implemented
+- Boundary-scoped driver discovery cache: implemented
 - Hydrate Hosting Hub from Supabase: implemented
 - Hydrate public map from Supabase: implemented
 - Update existing listings: deferred

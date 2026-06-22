@@ -13,21 +13,27 @@ import PaymentMethodScreen from '@/app/modal/PaymentMethodScreen'
 import { calculateBookingPricing, getBookingEnd } from '@/src/lib/bookingPricing'
 import { transactionAdapter } from '@/src/adapters/transactionAdapter'
 import type { PaymentMethodSelection } from '@/src/types/payment'
+import { publicLocationAdapter } from '@/src/adapters/publicLocationAdapter'
+import { findAvailableAlternative } from '@/src/lib/findAvailableAlternative'
+import BookingAlternativeModal from '@/components/modals/BookingAlternativeModal'
 
 const { width, height } = Dimensions.get("window");
 
 const cancelPolicy = 'I agree with the House Rules, Cancellation Policy and the Guest Refund Policy. I understand and agree to pay the total amount shown which include Service Fees.'
 
+const CONFLICT_MESSAGE_FRAGMENT = 'already booked for that time';
+
 const Pay = () => {
-  const { hrPrice, lotID } = useLocalSearchParams();
+  const { hrPrice, lotID, locationId } = useLocalSearchParams();
 //console.log("Pay - hrPrice -->", hrPrice)
 
   // Convert string to number
   const hourlyPrice = Number(hrPrice);
   const resolvedLotId = Array.isArray(lotID) ? lotID[0] : lotID;
+  const resolvedLocationId = Array.isArray(locationId) ? locationId[0] : locationId;
 
   const router = useRouter();
-  const { bookingTime } = useLocationStore();
+  const { bookingTime, driverDiscovery, replaceCachedLocation, appendTransactionToCachedLot } = useLocationStore();
   const session = useAuthStore((state) => state.session);
   const openModal = useAuthStore((state) => state.openModal);
 
@@ -36,11 +42,19 @@ const Pay = () => {
   const [paymentSheetHeight, setPaymentSheetHeight] = useState(0.55);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethodSelection | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alternativeState, setAlternativeState] = useState({
+    visible: false,
+    selectedLotNumber: null as number | null,
+    alternativeLotNumber: null as number | null,
+    alternativeLotId: null as string | null,
+  });
 
   const start = new Date(bookingTime.startTime);
   const duration = new Date(bookingTime.duration);
   const parkingSessionEnd = getBookingEnd(start, duration);
   const pricing = calculateBookingPricing(hourlyPrice, duration);
+  const cachedLocation = (driverDiscovery.locations ?? []).find((location: any) => location?.id === resolvedLocationId);
+  const selectedLot = (cachedLocation?.Lots?.items ?? []).find((lot: any) => lot?.id === resolvedLotId);
 
   // Human readable format
   const formattedEnd = parkingSessionEnd.toLocaleString('en-UK', { hour: 'numeric', minute: 'numeric', hour12: false });
@@ -62,6 +76,52 @@ const Pay = () => {
   const handlePaymentContinue = (selection: PaymentMethodSelection) => {
     setSelectedPayment(selection);
     setShowPaymentModal(false);
+  };
+
+  const handleGoBackToPlaceDetails = (targetLotId?: string | null) => {
+    if (!resolvedLocationId) {
+      router.replace('/');
+      return;
+    }
+
+    router.replace({
+      pathname: '/driver/placeDetail',
+      params: {
+        locationId: resolvedLocationId,
+        lotId: targetLotId ?? resolvedLotId ?? undefined,
+      },
+    });
+  };
+
+  const handleConflictRecovery = async (errorMessage: string) => {
+    if (!resolvedLocationId) {
+      Alert.alert('Could not complete booking', errorMessage);
+      return;
+    }
+
+    try {
+      const latestLocation = await publicLocationAdapter.fetchById(resolvedLocationId);
+      replaceCachedLocation(latestLocation);
+
+      const alternativeLot = findAvailableAlternative(
+        latestLocation,
+        resolvedLotId,
+        start,
+        parkingSessionEnd,
+      );
+
+      const latestSelectedLot = (latestLocation?.Lots?.items ?? []).find((lot: any) => lot?.id === resolvedLotId);
+
+      setAlternativeState({
+        visible: true,
+        selectedLotNumber: latestSelectedLot?.lotNr ?? selectedLot?.lotNr ?? null,
+        alternativeLotNumber: alternativeLot?.lotNr ?? null,
+        alternativeLotId: alternativeLot?.id ?? null,
+      });
+    } catch (refreshError) {
+      console.error('Failed to refresh location after booking conflict', refreshError);
+      Alert.alert('Could not complete booking', errorMessage);
+    }
   };
 
   const handleConfirm = async () => {
@@ -91,6 +151,20 @@ const Pay = () => {
         paymentMethod: selectedPayment,
       });
 
+      if (resolvedLocationId && resolvedLotId) {
+        appendTransactionToCachedLot({
+          locationId: resolvedLocationId,
+          lotId: resolvedLotId,
+          transaction: {
+            id: transaction.id,
+            lotID: transaction.lotId,
+            startBooking: transaction.startBooking,
+            endBooking: transaction.endBooking,
+            status: transaction.status,
+          },
+        });
+      }
+
       Alert.alert(
         'Booking confirmed',
         `Reference ${transaction.bookingReference}\n${new Intl.NumberFormat('da', { style: 'currency', currency: 'DKK' }).format(transaction.totalAmount)}`,
@@ -98,7 +172,14 @@ const Pay = () => {
       );
     } catch (error: any) {
       console.error('Failed to create booking transaction', error);
-      Alert.alert('Could not complete booking', error?.message ?? 'Please try a different time slot.');
+
+      const errorMessage = error?.message ?? 'Please try a different time slot.';
+
+      if (errorMessage.toLowerCase().includes(CONFLICT_MESSAGE_FRAGMENT)) {
+        await handleConflictRecovery(errorMessage);
+      } else {
+        Alert.alert('Could not complete booking', errorMessage);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -232,6 +313,27 @@ const Pay = () => {
           />
         </LiquidGlassModal>
       )}
+
+      <BookingAlternativeModal
+        visible={alternativeState.visible}
+        selectedLotNumber={alternativeState.selectedLotNumber}
+        alternativeLotNumber={alternativeState.alternativeLotNumber}
+        hasAlternative={Boolean(alternativeState.alternativeLotId)}
+        onAcceptAlternative={() => {
+          setAlternativeState((currentState) => ({
+            ...currentState,
+            visible: false,
+          }));
+          handleGoBackToPlaceDetails(alternativeState.alternativeLotId);
+        }}
+        onAcknowledge={() => {
+          setAlternativeState((currentState) => ({
+            ...currentState,
+            visible: false,
+          }));
+          handleGoBackToPlaceDetails(alternativeState.alternativeLotId ?? resolvedLotId);
+        }}
+      />
     </LinearGradient>
   )
 }

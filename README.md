@@ -64,11 +64,19 @@ Host locations and resumable listing drafts now come from separate sources so th
 
 Published locations can now be fetched for the driver map through `src/adapters/publicLocationAdapter.ts`, while AsyncStorage stays reserved for incomplete local drafts only.
 
+Driver discovery now uses a persisted local cache instead of querying per lot change.
+
+- Home screen waits for map bounds, then fetches one Supabase payload for the current `activeTab + filters + viewport` state.
+- That payload is stored in `src/store.js` and reused by map cards, place detail, and downstream booking screens.
+- Place detail no longer makes a database request when the user scrolls the lot carousel; it reads the selected location and lot windows from the cached payload.
+- If a lot becomes unavailable during payment confirmation, the app refreshes only that location from Supabase and can suggest an alternative lot with a liquid-glass modal.
+
 Driver bookings are now backed by Supabase transactions instead of a mock confirm action.
 
 - The pay screen opens a structured payment-method sheet and writes bookings through `src/adapters/transactionAdapter.ts`.
 - Successful booking writes go through `public.create_booking_transaction(jsonb)` and create rows in `public.transactions`, `public.transaction_payment_details`, and `public.transaction_events`.
-- Place detail checks live lot occupancy through `public.get_lot_booking_windows(...)` and shows a glass availability clue when the selected booking window overlaps an existing reservation.
+- Public driver discovery reads go through `public.list_public_locations_in_bounds(...)`, and single-location refreshes go through `public.get_public_location_by_id(...)`.
+- Place detail checks cached lot occupancy from that payload and shows a glass availability clue when the selected booking window overlaps an existing reservation.
 - Only masked payment details are stored in Supabase: card last 4 and expiry, or MobilePay last 4 and profile label. Full card numbers, CVC, and full MobilePay phone values are not stored.
 
 ## Get a fresh project

@@ -203,6 +203,7 @@ create table if not exists public.transaction_events (
 create index if not exists idx_hosts_host_sub on public.hosts(host_sub);
 create index if not exists idx_locations_host_id on public.locations(host_id);
 create index if not exists idx_locations_publication on public.locations(publication_status, is_active, published_at desc);
+create index if not exists idx_locations_bounds_lookup on public.locations(publication_status, is_active, lat, lng);
 create index if not exists idx_lots_location_id on public.lots(location_id);
 create index if not exists idx_lot_availability_windows_lot_id on public.lot_availability_windows(lot_id);
 create index if not exists idx_chargers_lot_id on public.chargers(lot_id);
@@ -529,6 +530,161 @@ as $$
   order by transaction_row.start_booking asc;
 $$;
 
+create or replace function public.build_public_location_payload(input_location_id uuid)
+returns jsonb
+language sql
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'id', location.id,
+    'type', location.type,
+    'addrLoc', location.addr_loc,
+    'nrOfLots', location.nr_of_lots,
+    'hrPrice', location.hr_price,
+    'locName', location.loc_name,
+    'hostID', location.host_id,
+    'lng', location.lng,
+    'lat', location.lat,
+    'description', location.description,
+    'dyPrice', location.dy_price,
+    'img', location.img,
+    'rating', location.rating,
+    'isActive', location.is_active,
+    'reviewStatus', location.review_status,
+    'publicationStatus', location.publication_status,
+    'publishedAt', location.published_at,
+    'parkingFee', coalesce(location.parking_fee, location.hr_price, 0),
+    'newPrice', null,
+    'Lots', jsonb_build_object(
+      'items', coalesce((
+        select jsonb_agg(
+          jsonb_build_object(
+            'id', lot.id,
+            'img', lot.img,
+            'rules', lot.rules,
+            'lotNr', lot.lot_nr,
+            'avlBool', lot.avl_bool,
+            'startAvl', lot.start_avl,
+            'endAvl', lot.end_avl,
+            'chargerBool', lot.charger_bool,
+            'locationID', lot.location_id,
+            'parkingFee', coalesce(lot.parking_fee, 0),
+            'AvlDaysNTimes', jsonb_build_object(
+              'items', coalesce((
+                select jsonb_agg(
+                  jsonb_build_object(
+                    'id', availability.id,
+                    'day', availability.day,
+                    'bool', availability.bool,
+                    'sT', availability.s_t,
+                    'eT', availability.e_t
+                  ) order by availability.s_t asc
+                )
+                from public.lot_availability_windows availability
+                where availability.lot_id = lot.id
+              ), '[]'::jsonb)
+            ),
+            'Charger', (
+              select case
+                when charger.id is null then null
+                else jsonb_build_object(
+                  'id', charger.id,
+                  'chargerNr', charger.charger_nr,
+                  'plugType', charger.plug_type,
+                  'power', charger.power,
+                  'usageFee', charger.usage_fee,
+                  'pricekWh', charger.price_kwh
+                )
+              end
+              from public.chargers charger
+              where charger.lot_id = lot.id
+              limit 1
+            ),
+            'Transactions', jsonb_build_object(
+              'items', coalesce((
+                select jsonb_agg(
+                  jsonb_build_object(
+                    'id', transaction_row.id,
+                    'lotID', transaction_row.lot_id,
+                    'startBooking', transaction_row.start_booking,
+                    'endBooking', transaction_row.end_booking,
+                    'status', transaction_row.status
+                  ) order by transaction_row.start_booking asc
+                )
+                from public.transactions transaction_row
+                where transaction_row.lot_id = lot.id
+                  and transaction_row.status in ('pending_payment', 'confirmed')
+                  and transaction_row.end_booking > timezone('utc', now())
+              ), '[]'::jsonb)
+            )
+          ) order by lot.lot_nr asc
+        )
+        from public.lots lot
+        where lot.location_id = location.id
+      ), '[]'::jsonb)
+    )
+  )
+  from public.locations location
+  where location.id = input_location_id
+    and location.publication_status = 'published'
+    and location.is_active = true;
+$$;
+
+create or replace function public.get_public_location_by_id(input_location_id uuid)
+returns jsonb
+language sql
+security definer
+set search_path = public
+as $$
+  select public.build_public_location_payload(input_location_id);
+$$;
+
+create or replace function public.list_public_locations_in_bounds(
+  input_southwest_lat double precision,
+  input_northeast_lat double precision,
+  input_southwest_lng double precision,
+  input_northeast_lng double precision,
+  input_filters jsonb default '{}'::jsonb
+)
+returns jsonb
+language sql
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    jsonb_agg(public.build_public_location_payload(location.id) order by location.published_at desc, location.created_at desc),
+    '[]'::jsonb
+  )
+  from public.locations location
+  where location.publication_status = 'published'
+    and location.is_active = true
+    and location.lat between input_southwest_lat and input_northeast_lat
+    and location.lng between input_southwest_lng and input_northeast_lng
+    and (
+      input_filters->>'min_hourly_price' is null
+      or location.hr_price >= (input_filters->>'min_hourly_price')::numeric
+    )
+    and (
+      input_filters->>'max_hourly_price' is null
+      or location.hr_price <= (input_filters->>'max_hourly_price')::numeric
+    )
+    and (
+      coalesce((input_filters->>'charger_required')::boolean, false) = false
+      or exists (
+        select 1
+        from public.lots lot
+        where lot.location_id = location.id and lot.charger_bool = true
+      )
+    )
+    and (
+      jsonb_array_length(coalesce(input_filters->'location_types', '[]'::jsonb)) = 0
+      or location.type in (
+        select jsonb_array_elements_text(coalesce(input_filters->'location_types', '[]'::jsonb))
+      )
+    );
+$$;
+
 create or replace function public.create_booking_transaction(input_payload jsonb)
 returns jsonb
 language plpgsql
@@ -784,6 +940,9 @@ grant execute on function public.upsert_host_profile(text) to authenticated;
 grant execute on function public.create_host_listing(jsonb) to authenticated;
 grant execute on function public.get_lot_booking_windows(uuid, timestamptz, timestamptz) to anon, authenticated;
 grant execute on function public.create_booking_transaction(jsonb) to authenticated;
+grant execute on function public.build_public_location_payload(uuid) to anon, authenticated;
+grant execute on function public.get_public_location_by_id(uuid) to anon, authenticated;
+grant execute on function public.list_public_locations_in_bounds(double precision, double precision, double precision, double precision, jsonb) to anon, authenticated;
 
 grant select on public.hosts to authenticated;
 grant select on public.locations to anon, authenticated;

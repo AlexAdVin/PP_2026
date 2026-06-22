@@ -2,6 +2,7 @@ import {View, Text, Pressable, TouchableOpacity, StyleSheet} from 'react-native'
 
 import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useLocationStore } from '../../../src/store';
 
 import styles from '../../../global/style/styles';
 import stylesBtns from '../../../global/style/stylesBtns';
@@ -13,6 +14,7 @@ import stylesCards from './stylesCards';
 const PostCard = ({ post, parkingFee, setSelPostId}) => {
 
   const router = useRouter();
+  const setSelectedParkingTarget = useLocationStore((state) => state.setSelectedParkingTarget);
 
   const SURGE_CHARGE_RATE = post.dyPrice ? 10.5 : 10;
 
@@ -45,7 +47,10 @@ const PostCard = ({ post, parkingFee, setSelPostId}) => {
           <View style={{ marginTop: 5, flexDirection:'row', justifyContent:'space-between' }}> 
             <Pressable
               hitSlop={10}
-              onPress={() => { router.push({ pathname: '/driver/placeDetail', params: { post: JSON.stringify(post) } })}}
+              onPress={() => {
+                setSelectedParkingTarget(post?.id, post?.Lots?.items?.[0]?.id ?? null);
+                router.push({ pathname: '/driver/placeDetail', params: { locationId: post?.id } });
+              }}
               style={[stylesCards.signIn, { alignSelf: 'stretch', width: "70%", backgroundColor:'rgba(255,255,255,0.3)'}]}
             >
               <Text style={[stylesCards.cardTitle, {color:'#fff'}]}>Book now</Text> 

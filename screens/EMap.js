@@ -5,7 +5,6 @@ import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import { useLocationStore } from '../src/store';
 
 import { mapDarkStyle, mapStandardStyle } from '../model/mapData';
-import mockLocations from '../model/mockLocations.json';
 import CustomMarker from '../components/CustomMarker';
 import LocMarker from '../components/LocMarker';
 
@@ -22,8 +21,7 @@ const CARD_MARGIN = width * 0.03;
 const CARD_SPACING = CARD_WIDTH + CARD_MARGIN;
 
 const CarouselMap = ({ posts = [], setActiveTab }) => {
-  // Use mock locations if no posts provided
-  const displayPosts = posts.length > 0 ? posts : mockLocations.locations;
+  const displayPosts = Array.isArray(posts) ? posts : [];
   const [mapBounds, setMapBounds] = useState({ viewport: null });
   const origin = useLocationStore((state) => state.originDetails);
   const destination = useLocationStore((state) => state.destinationDetails);

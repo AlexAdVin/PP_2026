@@ -43,7 +43,7 @@ const FooterActionBar = ({ setShowTPicker, checkedLot, marker, bookingBlocked = 
             return;
           }
 
-          router.push({ pathname: "/driver/pay", params: { hrPrice: marker.hrPrice, lotID: marker.Lots.items[checkedLot].id, startTime: bookingTime.startTime, duration: bookingTime.duration } });
+          router.push({ pathname: "/driver/pay", params: { hrPrice: marker.hrPrice, locationId: marker.id, lotID: marker.Lots.items[checkedLot].id, startTime: bookingTime.startTime, duration: bookingTime.duration } });
         }}
       >
         <Text style={[styles.exText, { width: width * 0.27 }]}>{bookingBlocked ? 'Unavailable' : 'Book now'}</Text>

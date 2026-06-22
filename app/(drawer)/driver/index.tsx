@@ -11,6 +11,7 @@ import EMap from '@/screens/EMap';
 
 import styles from '@/global/style/styles';
 import { publicLocationAdapter } from '@/src/adapters/publicLocationAdapter';
+import { useLocationStore } from '@/src/store';
 
 
 // Empty default - EMap will use mockLocations if no posts provided
@@ -21,19 +22,43 @@ const HomeScreen = () => {
   const [posts, setPosts] = useState<any[]>(defaultPosts);
   const router = useRouter();
   const navigation = useNavigation<any>();
+  const mapBounds = useLocationStore((state) => state.mapBounds);
+  const driverFilters = useLocationStore((state) => state.driverFilters);
+  const driverDiscovery = useLocationStore((state) => state.driverDiscovery);
+  const setDriverDiscovery = useLocationStore((state) => state.setDriverDiscovery);
+
+  useEffect(() => {
+    if ((driverDiscovery.locations ?? []).length > 0) {
+      setPosts(driverDiscovery.locations);
+    }
+  }, [driverDiscovery.locations]);
 
   useEffect(() => {
     let isMounted = true;
 
+    const boundsKey = mapBounds?.viewport
+      ? publicLocationAdapter.buildDiscoveryFetchKey(activeTab, mapBounds.viewport, driverFilters)
+      : JSON.stringify({ activeTab, viewport: null, filters: driverFilters });
+
     const hydratePublishedLocations = async () => {
       try {
-        const publishedLocations = await publicLocationAdapter.fetchPublished();
+        const publishedLocations = await publicLocationAdapter.fetchPublished(
+          mapBounds?.viewport,
+          driverFilters,
+        );
 
         if (!isMounted) {
           return;
         }
 
         setPosts(publishedLocations);
+        setDriverDiscovery({
+          activeTab,
+          boundsKey,
+          filters: driverFilters,
+          locations: publishedLocations,
+          lastFetchedAt: new Date().toISOString(),
+        });
       } catch (error) {
         console.error('Failed to load published locations', error);
 
@@ -43,16 +68,18 @@ const HomeScreen = () => {
       }
     };
 
-    if (activeTab === 'Parking') {
-      void hydratePublishedLocations();
-    } else {
+    if (activeTab !== 'Parking') {
       setPosts([]);
+    } else if (driverDiscovery.boundsKey === boundsKey) {
+      setPosts(driverDiscovery.locations ?? []);
+    } else if (mapBounds?.viewport) {
+      void hydratePublishedLocations();
     }
 
     return () => {
       isMounted = false;
     };
-  }, [activeTab]);
+  }, [activeTab, driverDiscovery.boundsKey, driverDiscovery.locations, driverFilters, mapBounds?.viewport, setDriverDiscovery]);
 
   const handleMenuPress = () => {
     navigation.openDrawer();
