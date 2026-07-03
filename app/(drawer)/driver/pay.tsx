@@ -1,8 +1,9 @@
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, Modal, Alert } from 'react-native'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { LinearGradient } from 'expo-linear-gradient'
 import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import LottieView from 'lottie-react-native'
 import styles from '../../../global/style/styles'
 import BackBtn from '@/components/btns/BackBtn'
 import TimeReg from '@/components/time/TimeReg'
@@ -43,7 +44,11 @@ const Pay = () => {
   const resolvedLocationId = Array.isArray(locationId) ? locationId[0] : locationId;
 
   const router = useRouter();
-  const { bookingTime, driverDiscovery, replaceCachedLocation, appendTransactionToCachedLot } = useLocationStore();
+  const bookingTime = useLocationStore((state) => state.bookingTime);
+  const driverDiscovery = useLocationStore((state) => state.driverDiscovery);
+  const replaceCachedLocation = useLocationStore((state) => state.replaceCachedLocation);
+  const appendTransactionToCachedLot = useLocationStore((state) => state.appendTransactionToCachedLot);
+  const upsertDriverReservation = useLocationStore((state) => state.upsertDriverReservation);
   const session = useAuthStore((state) => state.session);
   const openModal = useAuthStore((state) => state.openModal);
 
@@ -58,6 +63,7 @@ const Pay = () => {
     alternativeLotNumber: null as number | null,
     alternativeLotId: null as string | null,
   });
+  const [successReservationId, setSuccessReservationId] = useState<string | null>(null);
 
   const start = new Date(bookingTime.startTime);
   const duration = new Date(bookingTime.duration);
@@ -65,6 +71,23 @@ const Pay = () => {
   const pricing = calculateBookingPricing(hourlyPrice, duration);
   const cachedLocation = (driverDiscovery.locations ?? []).find((location: any) => location?.id === resolvedLocationId);
   const selectedLot = (cachedLocation?.Lots?.items ?? []).find((lot: any) => lot?.id === resolvedLotId);
+
+  useEffect(() => {
+    if (!successReservationId) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      router.replace({
+        pathname: '/driver/reservations',
+        params: {
+          openReservationId: successReservationId,
+        },
+      });
+    }, 4000);
+
+    return () => clearTimeout(timeoutId);
+  }, [router, successReservationId]);
 
   // Human readable format
   const formattedEnd = parkingSessionEnd.toLocaleString('en-UK', { hour: 'numeric', minute: 'numeric', hour12: false });
@@ -175,11 +198,26 @@ const Pay = () => {
         });
       }
 
-      Alert.alert(
-        'Booking confirmed',
-        `Reference ${transaction.bookingReference}\n${new Intl.NumberFormat('da', { style: 'currency', currency: 'DKK' }).format(transaction.totalAmount)}`,
-        [{ text: 'OK', onPress: () => router.replace('/') }],
-      );
+      upsertDriverReservation({
+        id: transaction.id,
+        bookingReference: transaction.bookingReference,
+        status: transaction.status,
+        locationId: resolvedLocationId,
+        locationName: cachedLocation?.locName ?? 'Parking reservation',
+        lotId: resolvedLotId,
+        lotNumber: selectedLot?.lotNr ?? null,
+        startBooking: transaction.startBooking,
+        endBooking: transaction.endBooking,
+        hourlyRate: transaction.hourlyRate,
+        parkingAmount: transaction.parkingAmount,
+        serviceFeeAmount: transaction.serviceFeeAmount,
+        totalAmount: transaction.totalAmount,
+        currencyCode: transaction.currencyCode,
+        paymentMethodLabel: transaction.paymentMethodLabel,
+        bookedAt: transaction.bookedAt,
+      });
+
+      setSuccessReservationId(transaction.id);
     } catch (error: any) {
       console.error('Failed to create booking transaction', error);
 
@@ -344,8 +382,48 @@ const Pay = () => {
           handleGoBackToPlaceDetails(alternativeState.alternativeLotId ?? resolvedLotId);
         }}
       />
+
+      {successReservationId ? (
+        <View style={stylesPay.successOverlay}>
+          <LottieView
+            autoPlay
+            loop={false}
+            source={require('@/assets/lottie/done/Comp 1.json')}
+            style={stylesPay.successAnimation}
+          />
+          <Text style={stylesPay.successTitle}>Booking confirmed</Text>
+          <Text style={stylesPay.successBody}>Preparing your reservation passport.</Text>
+        </View>
+      ) : null}
     </LinearGradient>
   )
 }
+
+const stylesPay = StyleSheet.create({
+  successOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 50,
+    backgroundColor: 'rgba(5,10,18,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+  },
+  successAnimation: {
+    width: 190,
+    height: 190,
+  },
+  successTitle: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '800',
+    marginTop: 18,
+  },
+  successBody: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 15,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+});
 
 export default Pay

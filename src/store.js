@@ -58,6 +58,8 @@ export const useLocationStore = create(persist((set, get) => ({
 
   driverFilters: defaultDriverFilters,
   driverDiscovery: defaultDriverDiscovery,
+  driverReservations: [],
+  latestDriverReservationId: null,
   selectedLocationId: null,
   selectedLotId: null,
 
@@ -123,6 +125,22 @@ export const useLocationStore = create(persist((set, get) => ({
       lastFetchedAt: new Date().toISOString(),
     },
   })),
+  upsertDriverReservation: (reservation) => set((state) => {
+    if (!reservation?.id) {
+      return state;
+    }
+
+    const existingReservations = Array.isArray(state.driverReservations) ? state.driverReservations : [];
+    const nextReservations = [
+      reservation,
+      ...existingReservations.filter((item) => item?.id !== reservation.id),
+    ].sort((left, right) => new Date(right.startBooking).getTime() - new Date(left.startBooking).getTime());
+
+    return {
+      driverReservations: nextReservations,
+      latestDriverReservationId: reservation.id,
+    };
+  }),
   setSelectedParkingTarget: (locationId, lotId = null) => set({
     selectedLocationId: locationId,
     selectedLotId: lotId,
@@ -142,6 +160,8 @@ export const useLocationStore = create(persist((set, get) => ({
     bookingTime: state.bookingTime,
     driverFilters: state.driverFilters,
     driverDiscovery: state.driverDiscovery,
+    driverReservations: state.driverReservations,
+    latestDriverReservationId: state.latestDriverReservationId,
     selectedLocationId: state.selectedLocationId,
     selectedLotId: state.selectedLotId,
   }),

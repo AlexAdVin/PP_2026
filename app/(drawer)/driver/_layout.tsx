@@ -50,6 +50,10 @@ export default function DriverLayout() {
             }} */
         />
 
+        <Stack.Screen
+          name="reservations"
+        />
+
       </Stack>
     </ThemeProvider>
   );
