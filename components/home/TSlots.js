@@ -4,13 +4,25 @@ import React from 'react'
 import stylesBtns from '../../global/style/stylesBtns';
 const { width, height } = Dimensions.get("screen");
 
-export default function TSlots({ tsTab, setTsTab }) {
+const DEFAULT_OPTIONS = [15, 30, 45, 60, 120, 240];
+
+function formatDurationLabel(minutes) {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+
+  const hours = minutes / 60;
+  return Number.isInteger(hours) ? `${hours} hr` : `${hours.toFixed(1)} hr`;
+}
+
+export default function TSlots({ tsTab, setTsTab, options = DEFAULT_OPTIONS }) {
+  const durationOptions = Array.isArray(options) ? options : DEFAULT_OPTIONS;
 
   return (
     <View style={{ flexDirection: "row", paddingVertical: width * 0.05, justifyContent: "center", backgroundColor:"rgba(0,0,0,0.1)" }}>
-      <HeaderButton text="1 hr" value={1} tsTab={tsTab} setTsTab={setTsTab} />
-      <HeaderButton text="2 hr" value={2} tsTab={tsTab} setTsTab={setTsTab} />
-      <HeaderButton text="4 hr" value={4} tsTab={tsTab} setTsTab={setTsTab} />
+      {durationOptions.map((minutes) => (
+        <HeaderButton key={minutes} text={formatDurationLabel(minutes)} value={minutes} tsTab={tsTab} setTsTab={setTsTab} />
+      ))}
       <HeaderButton text="Other" value="other" tsTab={tsTab} setTsTab={setTsTab} />
     </View>
   )

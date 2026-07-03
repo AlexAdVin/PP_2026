@@ -13,6 +13,12 @@ type Props = {
   hasAlternative: boolean;
   onAcceptAlternative: () => void;
   onAcknowledge: () => void;
+  title?: string;
+  message?: string;
+  cardTitle?: string;
+  cardText?: string;
+  primaryButtonLabel?: string;
+  secondaryButtonLabel?: string;
 };
 
 export default function BookingAlternativeModal({
@@ -22,6 +28,12 @@ export default function BookingAlternativeModal({
   hasAlternative,
   onAcceptAlternative,
   onAcknowledge,
+  title,
+  message,
+  cardTitle,
+  cardText,
+  primaryButtonLabel,
+  secondaryButtonLabel,
 }: Props) {
   if (!visible) {
     return null;
@@ -30,31 +42,31 @@ export default function BookingAlternativeModal({
   return (
     <LiquidGlassModal heightPercent={0.42} onClose={onAcknowledge}>
       <View style={styles.container}>
-        <Text style={styles.title}>That slot was just taken</Text>
+        <Text style={styles.title}>{title ?? 'That slot was just taken'}</Text>
         <Text style={styles.message}>
-          {hasAlternative
+          {message ?? (hasAlternative
             ? `Lot ${selectedLotNumber ?? "?"} is no longer available at your selected time. Lot ${alternativeLotNumber ?? "?"} is available instead.`
-            : `Unfortunately, lot ${selectedLotNumber ?? "?"} is no longer available. Please select another time or find another parking location.`}
+            : `Unfortunately, lot ${selectedLotNumber ?? "?"} is no longer available. Please select another time or find another parking location.`)}
         </Text>
 
         <BlurView intensity={40} tint="light" style={styles.card}>
-          <Text style={styles.cardTitle}>{hasAlternative ? "Suggested alternative" : "Next step"}</Text>
+          <Text style={styles.cardTitle}>{cardTitle ?? (hasAlternative ? 'Suggested alternative' : 'Next step')}</Text>
           <Text style={styles.cardText}>
-            {hasAlternative
+            {cardText ?? (hasAlternative
               ? `Switch to lot ${alternativeLotNumber ?? "?"} and continue from place details.`
-              : "Go back to place details to refresh the latest live availability for this location."}
+              : 'Go back to place details to refresh the latest live availability for this location.')}
           </Text>
         </BlurView>
 
         <View style={styles.actions}>
           {hasAlternative ? (
             <HapticButton hapticStyle="medium" style={[styles.button, styles.primaryButton]} onPress={onAcceptAlternative}>
-              <Text style={styles.primaryButtonText}>Use alternative</Text>
+              <Text style={styles.primaryButtonText}>{primaryButtonLabel ?? 'Use alternative'}</Text>
             </HapticButton>
           ) : null}
 
           <HapticButton style={[styles.button, hasAlternative ? styles.secondaryButton : styles.primaryButton]} onPress={onAcknowledge}>
-            <Text style={hasAlternative ? styles.secondaryButtonText : styles.primaryButtonText}>Okay</Text>
+            <Text style={hasAlternative ? styles.secondaryButtonText : styles.primaryButtonText}>{secondaryButtonLabel ?? 'Okay'}</Text>
           </HapticButton>
         </View>
       </View>
