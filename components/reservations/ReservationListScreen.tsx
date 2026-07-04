@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import LiquidGlassModal from "@/components/modals/LiquidGlassModal";
@@ -124,7 +124,24 @@ export default function ReservationListScreen({
       {selectedReservation ? (
         <LiquidGlassModal heightPercent={0.72} onClose={() => setSelectedReservation(null)} useNativeModal>
           <View style={stylesScreen.passportWrap}>
-            <ReservationPassport reservation={selectedReservation} role={role} />
+            <ReservationPassport
+              reservation={selectedReservation}
+              role={role}
+              onCancel={() => {
+                Alert.alert(
+                  role === "host" ? "Cancel guest reservation" : "Cancel reservation",
+                  role === "host"
+                    ? "Host-side cancellation flow will be connected in the next stage."
+                    : "Driver cancellation flow will be connected in the next stage.",
+                );
+              }}
+              onEdit={() => {
+                Alert.alert("Edit reservation", "Reservation editing will be connected in the next stage.");
+              }}
+              onContact={() => {
+                Alert.alert("Contact driver", "Driver contact flow will be connected in the next stage.");
+              }}
+            />
           </View>
         </LiquidGlassModal>
       ) : null}

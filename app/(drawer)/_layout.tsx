@@ -84,6 +84,14 @@ export default function DrawerLayout() {
             title: "profile",
           }}
         />
+        
+        <Drawer.Screen
+          name="host/(tabs)/reservations"
+          options={{
+            drawerLabel: "Reservations",
+            title: "Reservations",
+          }}
+        />
 
         {/* Host Home flow */}
         <Drawer.Screen

@@ -12,6 +12,7 @@ type Props = {
   role?: "driver" | "host";
   onCancel?: () => void;
   onEdit?: () => void;
+  onContact?: () => void;
 };
 
 const formatTime = (value?: string) =>
@@ -38,12 +39,22 @@ const formatCurrency = (amount?: number) =>
     maximumFractionDigits: 2,
   }).format(amount ?? 0);
 
-export default function ReservationPassport({ reservation, role = "driver", onCancel, onEdit }: Props) {
+export default function ReservationPassport({ reservation, role = "driver", onCancel, onEdit, onContact }: Props) {
   const locationName = reservation?.locationName ?? reservation?.locName ?? "Parking reservation";
   const lotLabel = reservation?.lotNumber ?? reservation?.lotNr ?? reservation?.lotID ?? reservation?.lotId ?? "--";
   const primaryName = role === "host" ? reservation?.driverName ?? "Guest" : locationName;
   const secondaryName = role === "host" ? locationName : `Lot ${lotLabel}`;
   const price = reservation?.totalAmount ?? reservation?.parkingAmount ?? reservation?.agreedPriceHR ?? reservation?.hourlyRate;
+  const bookedAt = reservation?.bookedAt
+    ? new Date(reservation.bookedAt).toLocaleString(undefined, {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "--";
+  const paymentMethod = reservation?.paymentMethodLabel ?? reservation?.paymentMethodType ?? "Masked payment";
+  const statusLabel = reservation?.status ?? "confirmed";
 
   return (
     <View style={styles.passport}>
@@ -69,6 +80,26 @@ export default function ReservationPassport({ reservation, role = "driver", onCa
             <Text style={styles.detailLabel}>Total</Text>
             <Text style={styles.detailValue}>{formatCurrency(price)}</Text>
           </View>
+          {role === "host" ? (
+            <>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Booked at</Text>
+                <Text style={styles.detailValue}>{bookedAt}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Payment</Text>
+                <Text style={styles.detailValue}>{paymentMethod}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Status</Text>
+                <Text style={styles.detailValue}>{statusLabel}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Lot</Text>
+                <Text style={styles.detailValue}>{lotLabel}</Text>
+              </View>
+            </>
+          ) : null}
         </View>
 
         <ReservationCountdown startBooking={reservation?.startBooking} endBooking={reservation?.endBooking} />
@@ -84,9 +115,9 @@ export default function ReservationPassport({ reservation, role = "driver", onCa
           <Text style={styles.actionText}>Cancel</Text>
         </HapticButton>
 
-        <HapticButton hapticStyle="selection" style={[styles.actionButton, styles.editButton]} onPress={onEdit}>
-          <MaterialCommunityIcons name="calendar-edit" size={24} color="#0F172A" />
-          <Text style={[styles.actionText, styles.editText]}>Edit</Text>
+        <HapticButton hapticStyle="selection" style={[styles.actionButton, styles.editButton]} onPress={role === "host" ? onContact : onEdit}>
+          <MaterialCommunityIcons name={role === "host" ? "message-text-outline" : "calendar-edit"} size={24} color="#0F172A" />
+          <Text style={[styles.actionText, styles.editText]}>{role === "host" ? "Contact" : "Edit"}</Text>
         </HapticButton>
       </View>
     </View>
