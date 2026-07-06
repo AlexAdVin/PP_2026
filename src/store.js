@@ -53,7 +53,8 @@ export const useLocationStore = create(persist((set, get) => ({
   // Booking time state - persists across component tree
   bookingTime: {
     startTime: new Date().toISOString(),
-    duration: new Date(new Date().setHours(1, 0)).toISOString()
+    duration: new Date(new Date().setHours(1, 0)).toISOString(),
+    hasUserSelectedStartTime: false,
   },
 
   driverFilters: defaultDriverFilters,
@@ -150,7 +151,8 @@ export const useLocationStore = create(persist((set, get) => ({
   setBookingTime: (startTime, duration) => set({
     bookingTime: {
       startTime: startTime.toISOString?.() || startTime,
-      duration: duration.toISOString?.() || duration
+      duration: duration.toISOString?.() || duration,
+      hasUserSelectedStartTime: true,
     }
   }),
 }), {

@@ -8,10 +8,11 @@ import styles from '../../global/style/styles';
 import BookingTabs from '../booking/BookingTabs';
 import TSlots from '../home/TSlots';
 import { useLocationStore } from '../../src/store';
+import { getEffectiveBookingStart } from '../../src/lib/bookingTime';
 
 const { width, height } = Dimensions.get("screen");
 
-const TimeReg = ({ setShowTF }) => {
+const TimeReg = ({ onClose }) => {
   const bookingTime = useLocationStore((state) => state.bookingTime);
   const setBookingTime = useLocationStore((state) => state.setBookingTime);
   
@@ -19,8 +20,7 @@ const TimeReg = ({ setShowTF }) => {
   const [arrivalTab, setArrivalTab] = useState("Time of arrival");
   const [durationTab, setDurationTab] = useState(null);
 
-  // Start from now on each open; duration still reuses the stored selection.
-  const initialStart = React.useMemo(() => new Date(), []);
+  const initialStart = React.useMemo(() => getEffectiveBookingStart(bookingTime), [bookingTime]);
   const initialEnd = React.useMemo(() => {
     const storedDuration = new Date(bookingTime.duration);
     const nextDuration = new Date(initialStart);
@@ -94,7 +94,7 @@ const TimeReg = ({ setShowTF }) => {
           onPress={() => {
             if (val === 'Duration') {
               recordStartTime(date, date2);
-              setShowTF(false);
+              onClose?.();
             } else {
               recordStartTime(date, date2);
               setArrivalTab('Duration');

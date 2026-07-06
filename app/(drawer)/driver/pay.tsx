@@ -1,13 +1,13 @@
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, Modal, Alert } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native'
 import React, { useEffect, useState } from 'react'
-import { LinearGradient } from 'expo-linear-gradient'
 import { BlurView } from 'expo-blur'
+import { LinearGradient } from 'expo-linear-gradient'
 import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import LottieView from 'lottie-react-native'
 import styles from '../../../global/style/styles'
 import BackBtn from '@/components/btns/BackBtn'
-import TimeReg from '@/components/time/TimeReg'
+import BookingTimeSheet from '@/components/time/BookingTimeSheet'
 import { useLocationStore } from '../../../src/store'
 import { useAuthStore } from '@/src/store/authStore'
 import LiquidGlassModal from '@/components/modals/LiquidGlassModal'
@@ -18,6 +18,7 @@ import type { PaymentMethodSelection } from '@/src/types/payment'
 import { publicLocationAdapter } from '@/src/adapters/publicLocationAdapter'
 import { findAvailableAlternative } from '@/src/lib/findAvailableAlternative'
 import BookingAlternativeModal from '@/components/modals/BookingAlternativeModal'
+import { getEffectiveBookingStart } from '@/src/lib/bookingTime'
 
 const { width, height } = Dimensions.get("window");
 
@@ -66,20 +67,12 @@ const Pay = () => {
   });
   const [successReservationId, setSuccessReservationId] = useState<string | null>(null);
 
-  const start = new Date(bookingTime.startTime);
+  const start = getEffectiveBookingStart(bookingTime);
   const duration = new Date(bookingTime.duration);
   const parkingSessionEnd = getBookingEnd(start, duration);
   const pricing = calculateBookingPricing(hourlyPrice, duration);
   const cachedLocation = (driverDiscovery.locations ?? []).find((location: any) => location?.id === resolvedLocationId);
   const selectedLot = (cachedLocation?.Lots?.items ?? []).find((lot: any) => lot?.id === resolvedLotId);
-  const locationName = cachedLocation?.locName ?? 'Private parking';
-  const lotLabel = selectedLot?.lotNr ? `Lot ${selectedLot.lotNr}` : 'Reserved access';
-  const parkingFromLabel = start.toLocaleString('en-UK', {
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: false,
-    timeZone: 'Europe/Copenhagen',
-  });
 
   useEffect(() => {
     if (!successReservationId) {
@@ -100,6 +93,7 @@ const Pay = () => {
 
   // Human readable format
   const formattedEnd = parkingSessionEnd.toLocaleString('en-UK', { hour: 'numeric', minute: 'numeric', hour12: false });
+  const formattedStart = start.toLocaleString('en-UK', { hour: 'numeric', minute: 'numeric', hour12: false, timeZone: 'Europe/Copenhagen' });
 
   const handlePaymentStepChange = (step: 'choose' | 'details' | 'review') => {
     switch (step) {
@@ -256,68 +250,56 @@ const Pay = () => {
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentInset={{ top: 0, bottom: height * 0.1 }}>
         {/* About */}
-        <View style={stylesPay.heroShell}>
+        <View style={stylesPay.aboutWrap}>
           <LinearGradient
-            colors={['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.05)']}
+            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.04)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={stylesPay.aboutCard}
           >
-            <View style={stylesPay.aboutRow}>
-              <View style={stylesPay.aboutMediaFrame}>
-                <LinearGradient
-                  colors={['rgba(255,255,255,0.34)', 'rgba(255,255,255,0.08)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={stylesPay.aboutMedia}
-                >
-                  <MaterialCommunityIcons name="parking" size={30} color="#fff" />
-                </LinearGradient>
-              </View>
-
-              <View style={stylesPay.aboutCopy}>
-                <Text style={stylesPay.aboutEyebrow}>{lotLabel}</Text>
-                <Text style={stylesPay.aboutTitle} numberOfLines={2}>{locationName}</Text>
-                <Text style={stylesPay.aboutSubtitle} numberOfLines={2}>
-                  Calm private access with instant confirmation and all-day entry.
-                </Text>
-
-                <View style={stylesPay.aboutMetaRow}>
-                  <View style={stylesPay.aboutMetaPill}>
-                    <Text style={stylesPay.aboutMetaText}>Open 24/7</Text>
-                  </View>
-                  <View style={stylesPay.aboutMetaDot} />
-                  <Text style={stylesPay.aboutMetaTextMuted}>Private host</Text>
-                </View>
-              </View>
-            </View>
+            <Text style={stylesPay.aboutEyebrow}>About this reservation</Text>
+            <Text style={stylesPay.aboutTitle}>{cachedLocation?.locName ?? 'Selected parking space'}</Text>
+            <Text style={stylesPay.aboutSubtitle}>
+              Lot {selectedLot?.lotNr ?? 'Selected'} · Private host parking · Flexible arrival
+            </Text>
           </LinearGradient>
-
-          <TouchableOpacity onPress={() => setShowTPicker(true)} activeOpacity={0.92} style={stylesPay.floatingInfoWrap}>
-            <BlurView intensity={60} tint="dark" style={stylesPay.floatingInfoCard}>
-              <View style={stylesPay.floatingInfoIcon}>
-                <MaterialCommunityIcons name="clock-time-four-outline" size={18} color="#fff" />
-              </View>
-
-              <View style={stylesPay.floatingInfoBlock}>
-                <Text style={stylesPay.floatingInfoLabel}>Parking from</Text>
-                <Text style={stylesPay.floatingInfoValue}>Today at {parkingFromLabel}</Text>
-              </View>
-
-              <MaterialCommunityIcons name="arrow-right" size={20} color="rgba(255,255,255,0.9)" style={stylesPay.floatingArrow} />
-
-              <View style={stylesPay.floatingInfoBlock}>
-                <Text style={stylesPay.floatingInfoLabel}>Parking until</Text>
-                <Text style={stylesPay.floatingInfoValue}>Today at {formattedEnd}</Text>
-              </View>
-            </BlurView>
-          </TouchableOpacity>
         </View>
 
-        <View style={stylesPay.afterHeroSpacing} />
+        {/* Parking info */}
+        <TouchableOpacity onPress={() => setShowTPicker(true)} activeOpacity={0.92} style={stylesPay.parkingInfoWrap}>
+          <BlurView intensity={60} tint="light" style={stylesPay.parkingInfoCard}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.55)', 'rgba(255,255,255,0.18)']}
+              style={StyleSheet.absoluteFill}
+            />
+
+            <View style={stylesPay.parkingInfoTopRow}>
+              <Text style={stylesPay.parkingInfoLabel}>Parking info</Text>
+              <View style={stylesPay.parkingInfoEditPill}>
+                <Text style={stylesPay.parkingInfoEditText}>Edit</Text>
+              </View>
+            </View>
+
+            <View style={stylesPay.parkingInfoTimesRow}>
+              <View style={stylesPay.timeColumn}>
+                <Text style={stylesPay.timeEyebrow}>Park from</Text>
+                <Text style={stylesPay.timeValue}>Today at {formattedStart}</Text>
+              </View>
+
+              <View style={stylesPay.timeArrowWrap}>
+                <MaterialCommunityIcons name="arrow-right" size={24} color="#0F172A" />
+              </View>
+
+              <View style={stylesPay.timeColumn}>
+                <Text style={stylesPay.timeEyebrow}>Park until</Text>
+                <Text style={stylesPay.timeValue}>Today at {formattedEnd}</Text>
+              </View>
+            </View>
+          </BlurView>
+        </TouchableOpacity>
 
         {/* Price breakdown */}
-        <View style={[styles.fieldContainer, { padding: width * 0.06 }]}> 
+        <View style={[styles.fieldContainer, { padding: width * 0.06 }]}>
           <Text style={styles.txtFieldTitle}>Price details</Text>
           <View style={{ flex: 1, flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: height * 0.02 }}>
             <Text style={{ color: "#fff" }}>Parking price</Text>
@@ -372,29 +354,12 @@ const Pay = () => {
         </TouchableOpacity>
       </View>
 
-      <Modal
+      <BookingTimeSheet
         visible={showTPicker}
-        transparent
-        animationType='fade'
-        onRequestClose={() => setShowTPicker(false)}
-      >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.9)']}
-          style={StyleSheet.absoluteFill}
-        >
-          <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-            <View style={{ backgroundColor: 'rgba(0,0,0,0.9)', height: height * 0.85, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 }}>
-              <View style={{ marginBottom: 10, flexDirection: "row", justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={[styles.titleModal, { flex: 1 }]}>Edit Arrival & Duration</Text>
-                <TouchableOpacity onPress={() => setShowTPicker(false)}>
-                  <Text style={{ fontSize: 28, color: "#fff", fontWeight: 'bold' }}>✕</Text>
-                </TouchableOpacity>
-              </View>
-              <TimeReg setShowTF={setShowTPicker} />
-            </View>
-          </View>
-        </LinearGradient>
-      </Modal>
+        onClose={() => setShowTPicker(false)}
+        title="Edit Arrival & Duration"
+        heightPercent={0.82}
+      />
 
       {showPaymentModal && (
         <LiquidGlassModal heightPercent={paymentSheetHeight} onClose={() => setShowPaymentModal(false)}>
@@ -445,133 +410,99 @@ const Pay = () => {
 }
 
 const stylesPay = StyleSheet.create({
-  heroShell: {
-    marginHorizontal: 20,
-    marginTop: 18,
+  aboutWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 26,
   },
   aboutCard: {
-    minHeight: 148,
-    borderRadius: 30,
-    padding: 18,
+    minHeight: 188,
+    borderRadius: 34,
+    paddingHorizontal: 24,
+    paddingTop: 26,
+    paddingBottom: 72,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  aboutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  aboutMediaFrame: {
-    width: width * 0.29,
-    height: 98,
-    borderRadius: 22,
-    padding: 1,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  aboutMedia: {
-    flex: 1,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  aboutCopy: {
-    flex: 1,
-    marginLeft: 16,
-    justifyContent: 'center',
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   aboutEyebrow: {
-    color: 'rgba(255,255,255,0.62)',
+    color: 'rgba(255,255,255,0.65)',
     fontSize: 12,
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   aboutTitle: {
     color: '#fff',
-    fontSize: 22,
-    lineHeight: 25,
+    fontSize: 30,
+    lineHeight: 34,
     fontWeight: '700',
-    marginTop: 8,
-    letterSpacing: -0.5,
+    marginTop: 14,
+    letterSpacing: -0.9,
   },
   aboutSubtitle: {
-    color: 'rgba(255,255,255,0.68)',
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 8,
-  },
-  aboutMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    color: 'rgba(255,255,255,0.76)',
+    fontSize: 14,
+    lineHeight: 22,
     marginTop: 12,
   },
-  aboutMetaPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  aboutMetaDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.35)',
-    marginHorizontal: 10,
-  },
-  aboutMetaText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  aboutMetaTextMuted: {
-    color: 'rgba(255,255,255,0.62)',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  floatingInfoWrap: {
-    marginHorizontal: 14,
-    marginTop: -26,
-    zIndex: 5,
-  },
-  floatingInfoCard: {
-    minHeight: 76,
+  parkingInfoWrap: {
+    marginTop: -42,
+    marginHorizontal: 20,
+    marginBottom: 12,
     borderRadius: 28,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    overflow: 'hidden',
+  },
+  parkingInfoCard: {
+    borderRadius: 28,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.32)',
+  },
+  parkingInfoTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  floatingInfoIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+  parkingInfoLabel: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  parkingInfoEditPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.74)',
+  },
+  parkingInfoEditText: {
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  parkingInfoTimesRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
   },
-  floatingInfoBlock: {
+  timeColumn: {
     flex: 1,
   },
-  floatingInfoLabel: {
-    color: 'rgba(255,255,255,0.58)',
-    fontSize: 11,
-    marginBottom: 4,
+  timeEyebrow: {
+    color: '#475569',
+    fontSize: 12,
+    marginBottom: 6,
   },
-  floatingInfoValue: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
+  timeValue: {
+    color: '#0F172A',
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: '700',
   },
-  floatingArrow: {
-    marginHorizontal: 10,
-  },
-  afterHeroSpacing: {
-    height: 22,
+  timeArrowWrap: {
+    width: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   successOverlay: {
     ...StyleSheet.absoluteFillObject,

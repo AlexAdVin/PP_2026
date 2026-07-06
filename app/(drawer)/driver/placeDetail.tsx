@@ -1,11 +1,10 @@
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React, { useEffect, useMemo, useState } from 'react'
 import { LinearGradient } from 'expo-linear-gradient';
-import Modal from 'react-native-modal';
 import { useLocalSearchParams } from 'expo-router';
 
 import LotsCarousel from '../../../components/lots/LotsCarousel';
-import TimeReg from '../../../components/time/TimeReg';
+import BookingTimeSheet from '@/components/time/BookingTimeSheet';
 import ListingTabs from '../../../components/booking/ListingTabs';
 import FooterActionBar from '../../../components/footerNavs/FooterActionBar';
 import AmenitiesList from '../../../components/booking/AmenitiesList';
@@ -13,6 +12,7 @@ import MoreLessComponent from '../../../components/booking/MoreLessComponent';
 import BackBtn from '../../../components/btns/BackBtn';
 import { useLocationStore } from '../../../src/store';
 import { getBookingEnd } from '../../../src/lib/bookingPricing';
+import { getEffectiveBookingStart } from '../../../src/lib/bookingTime';
 
 const { width, height } = Dimensions.get("window");
 
@@ -51,7 +51,7 @@ const PlaceDetail = () => {
 
   const selectedLot = lotsArray[checkedLot];
   const lotIsBookable = selectedLot?.avlBool !== false;
-  const requestedStart = new Date(bookingTime.startTime);
+  const requestedStart = getEffectiveBookingStart(bookingTime);
   const requestedEnd = getBookingEnd(requestedStart, bookingTime.duration);
   const bookingWindows = [...(selectedLot?.Transactions?.items ?? [])];
   const lotIdsKey = lotsArray.map((lot: any) => lot?.id ?? '').join('|');
@@ -154,26 +154,12 @@ const PlaceDetail = () => {
 
           </ScrollView>
 
-          <Modal
-            isVisible={showTPicker}
-            onBackdropPress={() => setShowTPicker(false)}
-            onBackButtonPress={() => setShowTPicker(false)}
-            style={{ margin: 0, justifyContent: 'flex-end', alignItems: 'center' }}
-            backdropOpacity={0.8}
-            animationIn="fadeInUp"
-            animationOut="fadeOutDown"
-            useNativeDriver
-          >
-            <View style={{ backgroundColor: 'rgba(0,0,0,0.6)', height: height * 0.65, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingVertical: 20,  width: width }}>
-              <View style={{ marginBottom: 5, flexDirection: "row", justifyContent: 'space-between', paddingHorizontal: 20 }} >
-                <Text style={styles.titleModal}>Arrival & Duration</Text>
-                <TouchableOpacity onPress={() => setShowTPicker(false)}>
-                  <Text style={[styles.txtInIcon, { fontSize: 25, color: "#fff" }]}>✕</Text>
-                </TouchableOpacity>
-              </View>
-              <TimeReg setShowTF={setShowTPicker} />
-            </View>
-          </Modal>
+          <BookingTimeSheet
+            visible={showTPicker}
+            onClose={() => setShowTPicker(false)}
+            title="Arrival & Duration"
+            heightPercent={0.68}
+          />
         </>
 
         }
@@ -217,11 +203,6 @@ const styles = StyleSheet.create({
   },
   txtInC: {
     alignItems: 'center',
-  },
-  titleModal: {
-    fontSize: 20,
-    color: '#fff',
-    fontWeight: 'bold',
   },
   txtInIcon: {
     textAlign: 'center',
