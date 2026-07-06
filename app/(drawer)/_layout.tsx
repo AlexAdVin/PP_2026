@@ -86,7 +86,7 @@ export default function DrawerLayout() {
         />
         
         <Drawer.Screen
-          name="host/(tabs)/reservations"
+          name="driver/reservations"
           options={{
             drawerLabel: "Reservations",
             title: "Reservations",
