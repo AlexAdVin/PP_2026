@@ -17,6 +17,7 @@ import type { PaymentMethodSelection } from '@/src/types/payment'
 import { publicLocationAdapter } from '@/src/adapters/publicLocationAdapter'
 import { findAvailableAlternative } from '@/src/lib/findAvailableAlternative'
 import BookingAlternativeModal from '@/components/modals/BookingAlternativeModal'
+import BlurView from 'expo-blur/build/BlurView'
 
 const { width, height } = Dimensions.get("window");
 
@@ -246,8 +247,110 @@ const Pay = () => {
         <BackBtn />
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentInset={{ top: 0, bottom: height * 0.1 }}>
+
         {/* About */}
-        <View style={stylesPay.aboutContainer}>
+{/* About */}
+<View style={stylesPay.payHeroWrapper}>
+  <LinearGradient
+    colors={[
+      'rgba(255,255,255,0.16)',
+      'rgba(255,255,255,0.06)',
+      'rgba(0,0,0,0.12)',
+    ]}
+   style={stylesPay.payHeroCard}
+   >
+    <View style={stylesPay.payHeroTopRow}>
+      <View style={stylesPay.payHeroPill}>
+        <MaterialCommunityIcons name="parking" size={24} color="#fff" />
+        <Text style={stylesPay.payHeroPillText}>Private parking</Text>
+      </View>
+      <View style={stylesPay.payHeroAccessPill}>
+        <View style={stylesPay.payHeroAccessDot} />
+        <Text style={stylesPay.payHeroAccessText}>24/7 access</Text>
+      </View>
+    </View>
+
+    <View style={stylesPay.payHeroIconWrap}>
+     <MaterialCommunityIcons name="car-brake-parking" size={38} color="#fff" />
+    </View>
+
+    <Text style={stylesPay.payHeroEyebrow}>
+    {cachedLocation?.locName ?? 'Selected parking spot'}
+    </Text>
+
+   <Text style={stylesPay.payHeroTitle}>
+      Confirm your{'\n'}private spot.
+    </Text>
+
+    <Text style={stylesPay.payHeroSubtitle}>
+     {selectedLot?.lotNr
+        ? `Reserved space · Lot ${selectedLot.lotNr}`
+        : 'Reserved private parking space'}
+    </Text>
+
+    <View style={stylesPay.payHeroBottomRow}>
+      <View>
+        <Text style={stylesPay.payHeroSmallLabel}>Hourly rate</Text>
+        <Text style={stylesPay.payHeroPrice}>
+          {new Intl.NumberFormat('da', {
+            style: 'currency',
+            currency: 'DKK',
+          }).format(hourlyPrice)}
+        </Text>
+      </View>
+
+      <View style={stylesPay.payHeroVerified}>
+        <MaterialCommunityIcons
+          name="shield-check-outline"
+          size={18}
+          color="#D7FFE6"
+        />
+        <Text style={stylesPay.payHeroVerifiedText}>Verified host</Text>
+      </View>
+    </View>
+  </LinearGradient>
+</View>
+
+{/* Parking info */}
+<TouchableOpacity
+  activeOpacity={0.86}
+  onPress={() => setShowTPicker(true)}
+  style={stylesPay.parkingInfoFloatingWrap}
+>
+  <BlurView intensity={50} tint="light" style={stylesPay.parkingInfoGlass}>
+    <View style={stylesPay.parkingInfoIItem}>
+      <Text style={stylesPay.parkingInfoValue}>
+        {start.toLocaleString('en-UK', {
+          hour: 'numeric',
+          minute: 'numeric',
+          hour12: false,
+          timeZone: 'Europe/Copenhagen',
+        })}
+      </Text>
+      <Text style={stylesPay.parkingInfoLabel}>Arrival</Text>
+    </View>
+
+    <View style={stylesPay.parkingInfoDivider} />
+
+    <View style={stylesPay.parkingInfoCenter}>
+      <View style={stylesPay.parkingInfoCenter}>
+        <View style={stylesPay.parkingInfoIconCircle}>
+          <MaterialCommunityIcons name="arrow-right" size={22} color="#0F172A" />
+        </View>
+        <Text style={stylesPay.parkingInfoEditText}>Edit time</Text>
+      </View>
+    </View>
+
+    <View style={stylesPay.parkingInfoDivider} />
+
+    <View style={stylesPay.parkingInfoItem}>
+      <Text style={stylesPay.parkingInfoValue}>{formattedEnd}</Text>
+      <Text style={stylesPay.parkingInfoLabel}>Departure</Text>
+    </View>
+  </BlurView>
+</TouchableOpacity>
+
+{/*         <View style={stylesPay.aboutContainer}>
           <View style={stylesPay.aboutImageWrap}>
             <LinearGradient
               colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.06)']}
@@ -312,7 +415,7 @@ const Pay = () => {
               </Text>
             </View>
           </View>
-        </View>
+        </View> */}
 
         {/* Parking info */}
         <TouchableOpacity onPress={() => setShowTPicker(true)} style={[styles.txtInC, { backgroundColor: "rgba(0,0,0,0.1)", paddingVertical: width * 0.03, paddingHorizontal: width * 0.06 }]}>
@@ -482,112 +585,110 @@ const stylesPay = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
-  aboutContainer: {
-  marginHorizontal: width * 0.05,
-  marginTop: height * 0.025,
-  marginBottom: width * 0.04,
-  padding: width * 0.035,
-  borderRadius: 18,
+  payHeroWrapper: {
+    marginHorizontal: 20,
+    marginTop: height * 0.025,
+  },
+
+  payHeroCard: {
+  minHeight: height * 0.32,
+  borderRadius: 34,
+  padding: 24,
+  overflow: 'hidden',
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.16)',
   backgroundColor: 'rgba(255,255,255,0.08)',
+},
+
+  payHeroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  payHeroPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+
+  payHeroPillText: {
+    color: '#fff',
+    marginLeft: 6,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+payHeroAccessPill: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingHorizontal: 12,
+  paddingVertical: 8,
+  borderRadius: 999,
+  backgroundColor: 'rgba(46,204,113,0.14)',
+  borderWidth: 1,
+  borderColor: 'rgba(46,204,113,0.22)',
+},
+
+payHeroAccessDot: {
+  width: 7,
+  height: 7,
+  borderRadius: 4,
+  backgroundColor: '#2ecc71',
+  marginRight: 6,
+},
+
+  payHeroAccessText: {
+    color: '#D7FFE6',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  payHeroIconWrap: {
+  width: 68,
+  height: 88,
+  borderRadius: 24,
+  backgroundColor: 'rgba(255,255,255,0.14)',
   borderWidth: 1,
   borderColor: 'rgba(255,255,255,0.14)',
-  flexDirection: 'row',
-  alignItems: 'center',
-},
-
-aboutImageWrap: {
-  padding: 3,
-  borderRadius: 16,
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.22)',
-  marginRight: width * 0.035,
-},
-
-aboutImagePlaceholder: {
-  width: width * 0.24,
-  height: width * 0.24,
-  borderRadius: 13,
-  alignItems: 'center',
   justifyContent: 'center',
-  backgroundColor: 'rgba(255,255,255,0.12)',
-},
-
-aboutContent: {
-  flex: 1,
-},
-
-aboutHeaderRow: {
-  flexDirection: 'row',
   alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 8,
+  marginTop: 34,
+  marginBottom: 22,
 },
 
-aboutTitle: {
-  flex: 1,
-  color: '#fff',
-  fontSize: 16,
-  fontWeight: '700',
-},
-
-aboutBadge: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingHorizontal: 8,
-  paddingVertical: 4,
-  borderRadius: 999,
-  backgroundColor: 'rgba(46, 204, 113, 0.16)',
-  borderWidth: 1,
-  borderColor: 'rgba(46, 204, 113, 0.28)',
-},
-
-aboutBadgeDot: {
-  width: 6,
-  height: 6,
-  borderRadius: 3,
-  backgroundColor: '#2ecc71',
-  marginRight: 5,
-},
-
-aboutBadgeText: {
-  color: '#d7ffe6',
-  fontSize: 11,
-  fontWeight: '700',
-},
-
-aboutSubtitle: {
-  color: 'rgba(255,255,255,0.62)',
+payHeroEyebrow: {
+  color: 'rgba(255,255,255,0.68)',
   fontSize: 13,
-  marginTop: 5,
+  letterSpacing: 0.4,
+  marginBottom: 8,
 },
 
-aboutMetaRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginTop: 12,
-},
+  payHeroTitle: {
+    color: '#fff',
+    fontSize: 38,
+    lineHeight: 42,
+    fontWeight: '800',
+    letterSpacing: -1.4,
+  },
 
-aboutMetaItem: {
-  flexDirection: 'row',
-  alignItems: 'center',
-},
+  payHeroSubtitle: {
+    color: 'rgba(255,255,255,0.74)',
+    fontSize: 15,
+    lineHeight: 23,
+    marginTop: 14,
+    width: '92%',
+  },
 
-aboutMetaText: {
-  color: 'rgba(255,255,255,0.78)',
-  fontSize: 12,
-  marginLeft: 5,
-},
-
-aboutMetaDivider: {
-  width: 1,
-  height: 14,
-  backgroundColor: 'rgba(255,255,255,0.18)',
-  marginHorizontal: 10,
-},
-
-aboutFooter: {
-  marginTop: 12,
-  paddingTop: 10,
+payHeroBottomRow: { 
+  marginTop: 26,
+  paddingTop: 20,
   borderTopWidth: 1,
   borderTopColor: 'rgba(255,255,255,0.1)',
   flexDirection: 'row',
@@ -595,16 +696,113 @@ aboutFooter: {
   alignItems: 'center',
 },
 
-aboutFooterLabel: {
-  color: 'rgba(255,255,255,0.5)',
+payHeroSmallLabel: {
+  color: 'rgba(255,255,255,0.48)',
   fontSize: 12,
+  marginBottom: 4,
+},
+  payHeroPrice: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+
+  payHeroVerified: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  payHeroVerifiedText: {
+    color: '#D7FFE6',
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 6,
+  },
+
+  parkingInfoFloatingWrap: {
+    marginHorizontal: 20,
+    marginTop: -24,
+    marginBottom: width * 0.04,
+  borderRadius: 28,
+  },
+
+parkingInfoGlass: {
+  borderRadius: 28,
+  paddingVertical: 18,
+  paddingHorizontal: 16,
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  alignItems: 'center',
+  overflow: 'hidden',
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.55)',
+  backgroundColor: 'rgba(255,255,255,0.34)',
 },
 
-aboutFooterPrice: {
-  color: '#fff',
-  fontSize: 14,
+  parkingInfoItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+
+  parkingInfoVValue: {
+    color: '#0F172A',
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+  },
+
+  parkingInfoLabel: {
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+
+parkingInfoCenter: {
+ flex: 0.9,
+    alignItems: 'center',
+},
+
+parkingInfoIconCircle: {
+  width: 42,
+  height: 42,
+  borderRadius: 21,
+  backgroundColor: 'rgba(255,255,255,0.78)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 5,
+},
+
+parkingInfoIItem: {
+  flex: 1,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+parkingInfoValue: {
+  color: '#0F172A',
+  fontSize: 23,
+  fontWeight: '800',
+  letterSpacing: -0.7,
+},
+
+parkingInfoDivider: {
+  width: 1,
+  height: 46,
+  backgroundColor: 'rgba(15,23,42,0.13)',
+},
+
+parkingInfoEditText: {
+  color: '#334155',
+  fontSize: 11,
   fontWeight: '800',
 },
+
+
 });
 
 export default Pay
