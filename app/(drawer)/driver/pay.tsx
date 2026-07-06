@@ -1,7 +1,8 @@
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, Modal, Alert } from 'react-native'
 import React, { useEffect, useState } from 'react'
+import { BlurView } from 'expo-blur'
 import { LinearGradient } from 'expo-linear-gradient'
-import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons'
+import { MaterialCommunityIcons, Entypo, Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import LottieView from 'lottie-react-native'
 import styles from '../../../global/style/styles'
@@ -17,7 +18,6 @@ import type { PaymentMethodSelection } from '@/src/types/payment'
 import { publicLocationAdapter } from '@/src/adapters/publicLocationAdapter'
 import { findAvailableAlternative } from '@/src/lib/findAvailableAlternative'
 import BookingAlternativeModal from '@/components/modals/BookingAlternativeModal'
-import BlurView from 'expo-blur/build/BlurView'
 
 const { width, height } = Dimensions.get("window");
 
@@ -72,6 +72,26 @@ const Pay = () => {
   const pricing = calculateBookingPricing(hourlyPrice, duration);
   const cachedLocation = (driverDiscovery.locations ?? []).find((location: any) => location?.id === resolvedLocationId);
   const selectedLot = (cachedLocation?.Lots?.items ?? []).find((lot: any) => lot?.id === resolvedLotId);
+  const locationName = cachedLocation?.locName ?? 'Selected parking space';
+  const lotLabel = selectedLot?.lotNr ? `Lot ${selectedLot.lotNr}` : 'Reserved lot';
+  const parkingFromLabel = start.toLocaleString('en-UK', {
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+    timeZone: 'Europe/Copenhagen',
+  });
+  const parkingUntilLabel = parkingSessionEnd.toLocaleString('en-UK', {
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+    timeZone: 'Europe/Copenhagen',
+  });
+  const sessionDateLabel = start.toLocaleDateString('en-UK', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Europe/Copenhagen',
+  });
 
   useEffect(() => {
     if (!successReservationId) {
@@ -89,9 +109,6 @@ const Pay = () => {
 
     return () => clearTimeout(timeoutId);
   }, [router, successReservationId]);
-
-  // Human readable format
-  const formattedEnd = parkingSessionEnd.toLocaleString('en-UK', { hour: 'numeric', minute: 'numeric', hour12: false });
 
   const handlePaymentStepChange = (step: 'choose' | 'details' | 'review') => {
     switch (step) {
@@ -247,189 +264,72 @@ const Pay = () => {
         <BackBtn />
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentInset={{ top: 0, bottom: height * 0.1 }}>
-
         {/* About */}
-{/* About */}
-<View style={stylesPay.payHeroWrapper}>
-  <LinearGradient
-    colors={[
-      'rgba(255,255,255,0.16)',
-      'rgba(255,255,255,0.06)',
-      'rgba(0,0,0,0.12)',
-    ]}
-   style={stylesPay.payHeroCard}
-   >
-    <View style={stylesPay.payHeroTopRow}>
-      <View style={stylesPay.payHeroPill}>
-        <MaterialCommunityIcons name="parking" size={24} color="#fff" />
-        <Text style={stylesPay.payHeroPillText}>Private parking</Text>
-      </View>
-      <View style={stylesPay.payHeroAccessPill}>
-        <View style={stylesPay.payHeroAccessDot} />
-        <Text style={stylesPay.payHeroAccessText}>24/7 access</Text>
-      </View>
-    </View>
+        <View style={stylesPay.heroWrapper}>
+          <LinearGradient
+            colors={['rgba(235,241,244,0.16)', 'rgba(97,126,140,0.14)', 'rgba(12,19,28,0.38)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={stylesPay.heroCard}
+          >
+            <View style={stylesPay.heroGlow} />
 
-    <View style={stylesPay.payHeroIconWrap}>
-     <MaterialCommunityIcons name="car-brake-parking" size={38} color="#fff" />
-    </View>
+            <View style={stylesPay.heroTopRow}>
+              <BlurView intensity={34} tint="light" style={stylesPay.heroPill}>
+                <MaterialCommunityIcons name="shield-check-outline" size={14} color="#F8FAFC" />
+                <Text style={stylesPay.heroPillText}>Secure checkout</Text>
+              </BlurView>
 
-    <Text style={stylesPay.payHeroEyebrow}>
-    {cachedLocation?.locName ?? 'Selected parking spot'}
-    </Text>
+              <BlurView intensity={28} tint="light" style={stylesPay.heroPill}>
+                <Text style={stylesPay.heroPillText}>Open 24/7</Text>
+              </BlurView>
+            </View>
 
-   <Text style={stylesPay.payHeroTitle}>
-      Confirm your{'\n'}private spot.
-    </Text>
+            <View style={stylesPay.heroContent}>
+              <Text style={stylesPay.heroEyebrow}>{sessionDateLabel}</Text>
+              <Text style={stylesPay.heroTitle}>{locationName}</Text>
+              <Text style={stylesPay.heroSubtitle}>
+                {lotLabel} reserved with a calm, direct handoff into payment and arrival details.
+              </Text>
 
-    <Text style={stylesPay.payHeroSubtitle}>
-     {selectedLot?.lotNr
-        ? `Reserved space · Lot ${selectedLot.lotNr}`
-        : 'Reserved private parking space'}
-    </Text>
+              <View style={stylesPay.heroMetaRow}>
+                <View style={stylesPay.heroMetaCard}>
+                  <Text style={stylesPay.heroMetaLabel}>Arrival</Text>
+                  <Text style={stylesPay.heroMetaValue}>{parkingFromLabel}</Text>
+                </View>
 
-    <View style={stylesPay.payHeroBottomRow}>
-      <View>
-        <Text style={stylesPay.payHeroSmallLabel}>Hourly rate</Text>
-        <Text style={stylesPay.payHeroPrice}>
-          {new Intl.NumberFormat('da', {
-            style: 'currency',
-            currency: 'DKK',
-          }).format(hourlyPrice)}
-        </Text>
-      </View>
-
-      <View style={stylesPay.payHeroVerified}>
-        <MaterialCommunityIcons
-          name="shield-check-outline"
-          size={18}
-          color="#D7FFE6"
-        />
-        <Text style={stylesPay.payHeroVerifiedText}>Verified host</Text>
-      </View>
-    </View>
-  </LinearGradient>
-</View>
-
-{/* Parking info */}
-<TouchableOpacity
-  activeOpacity={0.86}
-  onPress={() => setShowTPicker(true)}
-  style={stylesPay.parkingInfoFloatingWrap}
->
-  <BlurView intensity={50} tint="light" style={stylesPay.parkingInfoGlass}>
-    <View style={stylesPay.parkingInfoIItem}>
-      <Text style={stylesPay.parkingInfoValue}>
-        {start.toLocaleString('en-UK', {
-          hour: 'numeric',
-          minute: 'numeric',
-          hour12: false,
-          timeZone: 'Europe/Copenhagen',
-        })}
-      </Text>
-      <Text style={stylesPay.parkingInfoLabel}>Arrival</Text>
-    </View>
-
-    <View style={stylesPay.parkingInfoDivider} />
-
-    <View style={stylesPay.parkingInfoCenter}>
-      <View style={stylesPay.parkingInfoCenter}>
-        <View style={stylesPay.parkingInfoIconCircle}>
-          <MaterialCommunityIcons name="arrow-right" size={22} color="#0F172A" />
+                <View style={stylesPay.heroMetaCard}>
+                  <Text style={stylesPay.heroMetaLabel}>Total</Text>
+                  <Text style={stylesPay.heroMetaValue}>
+                    {new Intl.NumberFormat('da', { style: 'currency', currency: 'DKK' }).format(pricing.totalAmount)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </LinearGradient>
         </View>
-        <Text style={stylesPay.parkingInfoEditText}>Edit time</Text>
-      </View>
-    </View>
-
-    <View style={stylesPay.parkingInfoDivider} />
-
-    <View style={stylesPay.parkingInfoItem}>
-      <Text style={stylesPay.parkingInfoValue}>{formattedEnd}</Text>
-      <Text style={stylesPay.parkingInfoLabel}>Departure</Text>
-    </View>
-  </BlurView>
-</TouchableOpacity>
-
-{/*         <View style={stylesPay.aboutContainer}>
-          <View style={stylesPay.aboutImageWrap}>
-            <LinearGradient
-              colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.06)']}
-              style={stylesPay.aboutImagePlaceholder}
-            >
-              <MaterialCommunityIcons
-                name="parking"
-                size={42}
-                color="#fff"
-              />
-            </LinearGradient>
-          </View>
-
-          <View style={stylesPay.aboutContent}>
-            <View style={stylesPay.aboutHeaderRow}>
-              <Text style={stylesPay.aboutTitle}>
-                {cachedLocation?.locName ?? 'Private parking'}
-              </Text>
-
-              <View style={stylesPay.aboutBadge}>
-                <View style={stylesPay.aboutBadgeDot} />
-                <Text style={stylesPay.aboutBadgeText}>Open 24/7</Text>
-              </View>
-            </View>
-
-            <Text style={stylesPay.aboutSubtitle}>
-              Reserved private space
-              {selectedLot?.lotNr ? ` · Lot ${selectedLot.lotNr}` : ''}
-            </Text>
-
-            <View style={stylesPay.aboutMetaRow}>
-              <View style={stylesPay.aboutMetaItem}>
-                <MaterialCommunityIcons
-                  name="shield-check-outline"
-                  size={16}
-                  color="rgba(255,255,255,0.85)"
-                />
-                <Text style={stylesPay.aboutMetaText}>Verified host</Text>
-              </View>
-
-              <View style={stylesPay.aboutMetaDivider} />
-
-              <View style={stylesPay.aboutMetaItem}>
-                <MaterialCommunityIcons
-                  name="clock-outline"
-                  size={16}
-                  color="rgba(255,255,255,0.85)"
-                />
-                <Text style={stylesPay.aboutMetaText}>
-                  Ends {formattedEnd}
-                </Text>
-              </View>
-            </View>
-
-            <View style={stylesPay.aboutFooter}>
-              <Text style={stylesPay.aboutFooterLabel}>Hourly rate</Text>
-              <Text style={stylesPay.aboutFooterPrice}>
-                {new Intl.NumberFormat('da', {
-                  style: 'currency',
-                  currency: 'DKK',
-                }).format(hourlyPrice)}
-              </Text>
-            </View>
-          </View>
-        </View> */}
 
         {/* Parking info */}
-        <TouchableOpacity onPress={() => setShowTPicker(true)} style={[styles.txtInC, { backgroundColor: "rgba(0,0,0,0.1)", paddingVertical: width * 0.03, paddingHorizontal: width * 0.06 }]}>
-          <View>
-            <Text style={{ color: "rgba(255,255,255,0.5)" }}>Parking from</Text>
-            <Text style={{ color: "#fff" }}>Today at {start.toLocaleString('en-UK', { hour: 'numeric', minute: 'numeric', hour12: false, timeZone: 'Europe/Copenhagen' })}</Text>
-          </View>
-          <View style={{ width: 100, alignItems: "center" }}>
-            <MaterialCommunityIcons name="arrow-right" size={28} color="#fff" />
-          </View>
-          <View>
-            <Text style={{ color: "rgba(255,255,255,0.5)" }}>Parking until</Text>
-            <Text style={{ color: "#fff" }}>Today at {formattedEnd}</Text>
-          </View>
+        <TouchableOpacity activeOpacity={0.92} onPress={() => setShowTPicker(true)} style={stylesPay.parkingInfoTouchable}>
+          <BlurView intensity={52} tint="light" style={stylesPay.parkingInfoCard}>
+            <View style={stylesPay.ctaIcon}>
+              <MaterialCommunityIcons name="clock-edit-outline" size={18} color="#0F172A" />
+            </View>
+
+            <View style={stylesPay.parkingInfoCopy}>
+              <Text style={stylesPay.parkingInfoTitle}>Parking info</Text>
+              <Text style={stylesPay.parkingInfoSubtitle}>
+                {parkingFromLabel} to {parkingUntilLabel} · Tap to edit arrival or duration
+              </Text>
+            </View>
+
+            <Ionicons
+              name="arrow-forward"
+              size={18}
+              color="#0F172A"
+              style={stylesPay.parkingInfoArrow}
+            />
+          </BlurView>
         </TouchableOpacity>
 
         {/* Price breakdown */}
@@ -561,6 +461,144 @@ const Pay = () => {
 }
 
 const stylesPay = StyleSheet.create({
+  heroWrapper: {
+    marginHorizontal: 20,
+    marginTop: 18,
+  },
+  heroCard: {
+    minHeight: 240,
+    borderRadius: 34,
+    padding: 22,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  heroGlow: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 999,
+    backgroundColor: 'rgba(226,232,240,0.12)',
+    top: -70,
+    right: -30,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  heroPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  heroPillText: {
+    color: '#F8FAFC',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  heroContent: {
+    marginTop: 'auto',
+    paddingTop: 34,
+  },
+  heroEyebrow: {
+    color: 'rgba(241,245,249,0.74)',
+    fontSize: 12,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '700',
+    letterSpacing: -0.8,
+    marginTop: 10,
+  },
+  heroSubtitle: {
+    color: 'rgba(241,245,249,0.78)',
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 10,
+    maxWidth: '92%',
+  },
+  heroMetaRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  heroMetaCard: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  heroMetaLabel: {
+    color: 'rgba(226,232,240,0.74)',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  heroMetaValue: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 6,
+  },
+  parkingInfoTouchable: {
+    marginHorizontal: 20,
+    marginTop: -28,
+    zIndex: 2,
+  },
+  parkingInfoCard: {
+    borderRadius: 28,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.82)',
+    backgroundColor: 'rgba(255,255,255,0.42)',
+  },
+  ctaIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.84)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  parkingInfoCopy: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  parkingInfoTitle: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  parkingInfoSubtitle: {
+    color: '#475569',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 3,
+  },
+  parkingInfoArrow: {
+    marginLeft: 'auto',
+  },
   successOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 50,
@@ -585,224 +623,6 @@ const stylesPay = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
-  payHeroWrapper: {
-    marginHorizontal: 20,
-    marginTop: height * 0.025,
-  },
-
-  payHeroCard: {
-  minHeight: height * 0.32,
-  borderRadius: 34,
-  padding: 24,
-  overflow: 'hidden',
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.16)',
-  backgroundColor: 'rgba(255,255,255,0.08)',
-},
-
-  payHeroTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  payHeroPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-  },
-
-  payHeroPillText: {
-    color: '#fff',
-    marginLeft: 6,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-
-payHeroAccessPill: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingHorizontal: 12,
-  paddingVertical: 8,
-  borderRadius: 999,
-  backgroundColor: 'rgba(46,204,113,0.14)',
-  borderWidth: 1,
-  borderColor: 'rgba(46,204,113,0.22)',
-},
-
-payHeroAccessDot: {
-  width: 7,
-  height: 7,
-  borderRadius: 4,
-  backgroundColor: '#2ecc71',
-  marginRight: 6,
-},
-
-  payHeroAccessText: {
-    color: '#D7FFE6',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  payHeroIconWrap: {
-  width: 68,
-  height: 88,
-  borderRadius: 24,
-  backgroundColor: 'rgba(255,255,255,0.14)',
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.14)',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginTop: 34,
-  marginBottom: 22,
-},
-
-payHeroEyebrow: {
-  color: 'rgba(255,255,255,0.68)',
-  fontSize: 13,
-  letterSpacing: 0.4,
-  marginBottom: 8,
-},
-
-  payHeroTitle: {
-    color: '#fff',
-    fontSize: 38,
-    lineHeight: 42,
-    fontWeight: '800',
-    letterSpacing: -1.4,
-  },
-
-  payHeroSubtitle: {
-    color: 'rgba(255,255,255,0.74)',
-    fontSize: 15,
-    lineHeight: 23,
-    marginTop: 14,
-    width: '92%',
-  },
-
-payHeroBottomRow: { 
-  marginTop: 26,
-  paddingTop: 20,
-  borderTopWidth: 1,
-  borderTopColor: 'rgba(255,255,255,0.1)',
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-},
-
-payHeroSmallLabel: {
-  color: 'rgba(255,255,255,0.48)',
-  fontSize: 12,
-  marginBottom: 4,
-},
-  payHeroPrice: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-
-  payHeroVerified: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  payHeroVerifiedText: {
-    color: '#D7FFE6',
-    fontSize: 12,
-    fontWeight: '700',
-    marginLeft: 6,
-  },
-
-  parkingInfoFloatingWrap: {
-    marginHorizontal: 20,
-    marginTop: -24,
-    marginBottom: width * 0.04,
-  borderRadius: 28,
-  },
-
-parkingInfoGlass: {
-  borderRadius: 28,
-  paddingVertical: 18,
-  paddingHorizontal: 16,
-  flexDirection: 'row',
-  justifyContent: 'space-around',
-  alignItems: 'center',
-  overflow: 'hidden',
-  borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.55)',
-  backgroundColor: 'rgba(255,255,255,0.34)',
-},
-
-  parkingInfoItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-
-  parkingInfoVValue: {
-    color: '#0F172A',
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-  },
-
-  parkingInfoLabel: {
-    color: '#475569',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-
-parkingInfoCenter: {
- flex: 0.9,
-    alignItems: 'center',
-},
-
-parkingInfoIconCircle: {
-  width: 42,
-  height: 42,
-  borderRadius: 21,
-  backgroundColor: 'rgba(255,255,255,0.78)',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginBottom: 5,
-},
-
-parkingInfoIItem: {
-  flex: 1,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-
-parkingInfoValue: {
-  color: '#0F172A',
-  fontSize: 23,
-  fontWeight: '800',
-  letterSpacing: -0.7,
-},
-
-parkingInfoDivider: {
-  width: 1,
-  height: 46,
-  backgroundColor: 'rgba(15,23,42,0.13)',
-},
-
-parkingInfoEditText: {
-  color: '#334155',
-  fontSize: 11,
-  fontWeight: '800',
-},
-
-
 });
 
 export default Pay
