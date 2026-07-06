@@ -247,12 +247,70 @@ const Pay = () => {
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentInset={{ top: 0, bottom: height * 0.1 }}>
         {/* About */}
-        <View style={[styles.txtInC, { marginBottom: width * 0.01, padding: width * 0.05 }]}>
-          <View style={{ borderColor: "white", borderWidth: 2, padding: width * 0.01, borderRadius: 7 }}>
-            <View style={{ width: width * 0.35, height: width * 0.25, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: 7 }} />
+        <View style={stylesPay.aboutContainer}>
+          <View style={stylesPay.aboutImageWrap}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.06)']}
+              style={stylesPay.aboutImagePlaceholder}
+            >
+              <MaterialCommunityIcons
+                name="parking"
+                size={42}
+                color="#fff"
+              />
+            </LinearGradient>
           </View>
-          <View>
-            <Text style={{ color: "#fff" }}>Open 24/7</Text>
+
+          <View style={stylesPay.aboutContent}>
+            <View style={stylesPay.aboutHeaderRow}>
+              <Text style={stylesPay.aboutTitle}>
+                {cachedLocation?.locName ?? 'Private parking'}
+              </Text>
+
+              <View style={stylesPay.aboutBadge}>
+                <View style={stylesPay.aboutBadgeDot} />
+                <Text style={stylesPay.aboutBadgeText}>Open 24/7</Text>
+              </View>
+            </View>
+
+            <Text style={stylesPay.aboutSubtitle}>
+              Reserved private space
+              {selectedLot?.lotNr ? ` · Lot ${selectedLot.lotNr}` : ''}
+            </Text>
+
+            <View style={stylesPay.aboutMetaRow}>
+              <View style={stylesPay.aboutMetaItem}>
+                <MaterialCommunityIcons
+                  name="shield-check-outline"
+                  size={16}
+                  color="rgba(255,255,255,0.85)"
+                />
+                <Text style={stylesPay.aboutMetaText}>Verified host</Text>
+              </View>
+
+              <View style={stylesPay.aboutMetaDivider} />
+
+              <View style={stylesPay.aboutMetaItem}>
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={16}
+                  color="rgba(255,255,255,0.85)"
+                />
+                <Text style={stylesPay.aboutMetaText}>
+                  Ends {formattedEnd}
+                </Text>
+              </View>
+            </View>
+
+            <View style={stylesPay.aboutFooter}>
+              <Text style={stylesPay.aboutFooterLabel}>Hourly rate</Text>
+              <Text style={stylesPay.aboutFooterPrice}>
+                {new Intl.NumberFormat('da', {
+                  style: 'currency',
+                  currency: 'DKK',
+                }).format(hourlyPrice)}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -424,6 +482,129 @@ const stylesPay = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
+  aboutContainer: {
+  marginHorizontal: width * 0.05,
+  marginTop: height * 0.025,
+  marginBottom: width * 0.04,
+  padding: width * 0.035,
+  borderRadius: 18,
+  backgroundColor: 'rgba(255,255,255,0.08)',
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.14)',
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+
+aboutImageWrap: {
+  padding: 3,
+  borderRadius: 16,
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.22)',
+  marginRight: width * 0.035,
+},
+
+aboutImagePlaceholder: {
+  width: width * 0.24,
+  height: width * 0.24,
+  borderRadius: 13,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: 'rgba(255,255,255,0.12)',
+},
+
+aboutContent: {
+  flex: 1,
+},
+
+aboutHeaderRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 8,
+},
+
+aboutTitle: {
+  flex: 1,
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: '700',
+},
+
+aboutBadge: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  borderRadius: 999,
+  backgroundColor: 'rgba(46, 204, 113, 0.16)',
+  borderWidth: 1,
+  borderColor: 'rgba(46, 204, 113, 0.28)',
+},
+
+aboutBadgeDot: {
+  width: 6,
+  height: 6,
+  borderRadius: 3,
+  backgroundColor: '#2ecc71',
+  marginRight: 5,
+},
+
+aboutBadgeText: {
+  color: '#d7ffe6',
+  fontSize: 11,
+  fontWeight: '700',
+},
+
+aboutSubtitle: {
+  color: 'rgba(255,255,255,0.62)',
+  fontSize: 13,
+  marginTop: 5,
+},
+
+aboutMetaRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: 12,
+},
+
+aboutMetaItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+
+aboutMetaText: {
+  color: 'rgba(255,255,255,0.78)',
+  fontSize: 12,
+  marginLeft: 5,
+},
+
+aboutMetaDivider: {
+  width: 1,
+  height: 14,
+  backgroundColor: 'rgba(255,255,255,0.18)',
+  marginHorizontal: 10,
+},
+
+aboutFooter: {
+  marginTop: 12,
+  paddingTop: 10,
+  borderTopWidth: 1,
+  borderTopColor: 'rgba(255,255,255,0.1)',
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+},
+
+aboutFooterLabel: {
+  color: 'rgba(255,255,255,0.5)',
+  fontSize: 12,
+},
+
+aboutFooterPrice: {
+  color: '#fff',
+  fontSize: 14,
+  fontWeight: '800',
+},
 });
 
 export default Pay
