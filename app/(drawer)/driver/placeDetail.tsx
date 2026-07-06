@@ -158,7 +158,7 @@ const PlaceDetail = () => {
             visible={showTPicker}
             onClose={() => setShowTPicker(false)}
             title="Arrival & Duration"
-            heightPercent={0.68}
+            heightPercent={0.60}
           />
         </>
 

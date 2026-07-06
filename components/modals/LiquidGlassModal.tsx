@@ -40,7 +40,7 @@ export default function LiquidGlassModal({
 
   useEffect(() => {
     translateY.value = withSpring(0, {
-      damping: 22,
+      damping: 10,
       stiffness: 220,
     });
   }, [translateY]);

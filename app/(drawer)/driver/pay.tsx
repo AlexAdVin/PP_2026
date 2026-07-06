@@ -59,6 +59,7 @@ const Pay = () => {
   const [paymentSheetHeight, setPaymentSheetHeight] = useState(0.55);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethodSelection | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [parkingInfoHeight, setParkingInfoHeight] = useState(150);
   const [alternativeState, setAlternativeState] = useState({
     visible: false,
     selectedLotNumber: null as number | null,
@@ -73,6 +74,7 @@ const Pay = () => {
   const pricing = calculateBookingPricing(hourlyPrice, duration);
   const cachedLocation = (driverDiscovery.locations ?? []).find((location: any) => location?.id === resolvedLocationId);
   const selectedLot = (cachedLocation?.Lots?.items ?? []).find((lot: any) => lot?.id === resolvedLotId);
+  const floatingOverlap = Math.max(34, Math.min(72, Math.round(parkingInfoHeight * 0.32)));
 
   useEffect(() => {
     if (!successReservationId) {
@@ -266,7 +268,24 @@ const Pay = () => {
         </View>
 
         {/* Parking info */}
-        <TouchableOpacity onPress={() => setShowTPicker(true)} activeOpacity={0.92} style={stylesPay.parkingInfoWrap}>
+        <TouchableOpacity
+          onPress={() => setShowTPicker(true)}
+          activeOpacity={0.92}
+          onLayout={(event) => {
+            const nextHeight = Math.round(event.nativeEvent.layout.height);
+
+            if (nextHeight > 0 && nextHeight !== parkingInfoHeight) {
+              setParkingInfoHeight(nextHeight);
+            }
+          }}
+          style={[
+            stylesPay.parkingInfoWrap,
+            {
+              marginTop: -floatingOverlap,
+              marginBottom: -floatingOverlap,
+            },
+          ]}
+        >
           <BlurView intensity={60} tint="light" style={stylesPay.parkingInfoCard}>
             <LinearGradient
               colors={['rgba(255,255,255,0.55)', 'rgba(255,255,255,0.18)']}
@@ -299,7 +318,15 @@ const Pay = () => {
         </TouchableOpacity>
 
         {/* Price breakdown */}
-        <View style={[styles.fieldContainer, { padding: width * 0.06 }]}>
+        <View
+          style={[
+            styles.fieldContainer,
+            stylesPay.priceBreakdownCard,
+            {
+              paddingTop: width * 0.06 + floatingOverlap,
+            },
+          ]}
+        > 
           <Text style={styles.txtFieldTitle}>Price details</Text>
           <View style={{ flex: 1, flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: height * 0.02 }}>
             <Text style={{ color: "#fff" }}>Parking price</Text>
@@ -445,11 +472,10 @@ const stylesPay = StyleSheet.create({
     marginTop: 12,
   },
   parkingInfoWrap: {
-    marginTop: -42,
     marginHorizontal: 20,
-    marginBottom: 12,
     borderRadius: 28,
     overflow: 'hidden',
+    zIndex: 3,
   },
   parkingInfoCard: {
     borderRadius: 28,
@@ -503,6 +529,10 @@ const stylesPay = StyleSheet.create({
     width: 48,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  priceBreakdownCard: {
+    paddingHorizontal: width * 0.06,
+    paddingBottom: width * 0.06,
   },
   successOverlay: {
     ...StyleSheet.absoluteFillObject,

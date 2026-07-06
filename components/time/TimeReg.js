@@ -82,14 +82,14 @@ const TimeReg = ({ onClose }) => {
 
   const FooterBtn = ({ val }) => {
     return (
-      <View style={{ backgroundColor: "rgba(0,0,0,0.3)", position: "absolute", bottom: 0, width, height: height * 0.12, marginVertical: width * 0.08, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }} >
+      <View style={{ backgroundColor: "rgba(0,0,0,0.3)", position: "absolute", bottom: 0, width, height: height * 0.12, /* marginVertical: width * 0.08, */ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }} >
         <Text style={[styles.exText, { color: '#fff', padding: width * 0.025, fontSize: 18, marginHorizontal: width * 0.03 }]}>{val === 'Duration' ? ('Duration •') : ('Start time & date')}
           <Text style={[styles.exText, { color: '#fff', fontSize: 18 }]}>
             {val === 'Duration' ? ('\n' + date2?.getHours() + ' ' + 'hr' + ' ' + date2?.getMinutes().toString().padStart(2, '0') + ' ' + 'min') : ('\n' + date?.toLocaleString('dk',{ timeStyle: 'short', timeZone: 'Europe/Copenhagen'}) + `  •  ${date?.toLocaleString('dk',{ dateStyle: 'medium', timeZone: 'Europe/Copenhagen' }) }` ) }
           </Text>
         </Text>
 
-        <Pressable style={{ flexDirection:"row", alignItems:"center", backgroundColor: "rgba(255,255,255,0.2)", marginVertical: 5, borderRadius: 10, marginHorizontal: width * 0.05, padding: 12 }}
+        <Pressable style={{ flexDirection:"row", alignItems:"center", backgroundColor: "rgba(255,255,255,0.2)", /* marginVertical: 5, */ borderRadius: 10, marginHorizontal: width * 0.05, padding: 12 }}
           hitSlop={20}
           onPress={() => {
             if (val === 'Duration') {
