@@ -23,6 +23,8 @@ export default function HostLocationModal({
   onSelectLocation,
 }: HostLocationModalProps) {
   const router = useRouter();
+  const savedDraft = locations.find((item) => item?.isDraft);
+  const publishedLocations = locations.filter((item) => !item?.isDraft);
 
   if (!visible) {
     return null;
@@ -33,6 +35,14 @@ export default function HostLocationModal({
 
     InteractionManager.runAfterInteractions(() => {
       router.push("/host/start-listing-intro");
+    });
+  };
+
+  const handleContinueDraft = () => {
+    onClose();
+
+    InteractionManager.runAfterInteractions(() => {
+      router.push("/host/start-listing?resume=1");
     });
   };
 
@@ -50,25 +60,8 @@ export default function HostLocationModal({
           </View>
         )}
       >
-        <ScrollView
-          style={{ height: height * 0.44, paddingHorizontal: width * 0.04 }}
-          contentContainerStyle={{ paddingBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {locations.map((item, index) => (
-            <ListingCard
-              key={item?.id ?? `${index}`}
-              showLocationsList
-              item={item}
-              index={index}
-              length={locations.length}
-              onSelectLocation={onSelectLocation}
-            />
-          ))}
-        </ScrollView>
-
-        <View style={stylesModal.footerWrap}>
-          <Pressable onPress={handleAddLocation} style={stylesModal.ctaPressable}>
+        <View style={stylesModal.actionSlotWrap}>
+          <Pressable onPress={savedDraft ? handleContinueDraft : handleAddLocation} style={stylesModal.ctaPressable}>
             <BlurView intensity={48} tint="light" style={stylesModal.ctaCard}>
               <LinearGradient
                 colors={["rgba(255,255,255,0.58)", "rgba(255,255,255,0.2)"]}
@@ -78,12 +71,16 @@ export default function HostLocationModal({
               />
 
               <View style={stylesModal.ctaIconWrap}>
-                <Ionicons name="add" size={20} color="#0F172A" />
+                <Ionicons name={savedDraft ? "time-outline" : "add"} size={20} color="#0F172A" />
               </View>
 
               <View style={stylesModal.ctaCopy}>
-                <Text style={stylesModal.ctaTitle}>Add a new location</Text>
-                <Text style={stylesModal.ctaSubtitle}>Start the guided host flow and publish another place.</Text>
+                <Text style={stylesModal.ctaTitle}>{savedDraft ? (savedDraft.locName || "Unlisted parking") : "Add a new location"}</Text>
+                <Text style={stylesModal.ctaSubtitle}>
+                  {savedDraft
+                    ? "Resume your saved unlisted draft from the exact step you left."
+                    : "Start the guided host flow and publish another place."}
+                </Text>
               </View>
 
               <View style={stylesModal.ctaArrowWrap}>
@@ -92,6 +89,23 @@ export default function HostLocationModal({
             </BlurView>
           </Pressable>
         </View>
+
+        <ScrollView
+          style={{ height: height * 0.44, paddingHorizontal: width * 0.04 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {publishedLocations.map((item, index) => (
+            <ListingCard
+              key={item?.id ?? `${index}`}
+              showLocationsList
+              item={item}
+              index={index}
+              length={publishedLocations.length}
+              onSelectLocation={onSelectLocation}
+            />
+          ))}
+        </ScrollView>
       </LiquidGlassModal>
     </View>
   );
@@ -120,9 +134,9 @@ const stylesModal = StyleSheet.create({
     color: "#475569",
     marginTop: 8,
   },
-  footerWrap: {
+  actionSlotWrap: {
     paddingHorizontal: width * 0.05,
-    paddingBottom: 22,
+    paddingBottom: 18,
   },
   ctaPressable: {
     borderRadius: 28,
