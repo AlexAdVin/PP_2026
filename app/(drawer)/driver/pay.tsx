@@ -74,7 +74,7 @@ const Pay = () => {
   const pricing = calculateBookingPricing(hourlyPrice, duration);
   const cachedLocation = (driverDiscovery.locations ?? []).find((location: any) => location?.id === resolvedLocationId);
   const selectedLot = (cachedLocation?.Lots?.items ?? []).find((lot: any) => lot?.id === resolvedLotId);
-  const floatingOverlap = Math.max(34, Math.min(72, Math.round(parkingInfoHeight * 0.32)));
+  const floatingOverlap = Math.max(34, Math.min(72, Math.round(parkingInfoHeight * 0.50)));
 
   useEffect(() => {
     if (!successReservationId) {
