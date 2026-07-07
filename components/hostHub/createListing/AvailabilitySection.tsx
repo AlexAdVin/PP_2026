@@ -151,14 +151,21 @@ export default function AvailabilitySection({ checkedLot, lotState, handleChange
         <Entypo name="chevron-thin-right" size={18} color="#fff" style={styles.chevIcon} />
       </TouchableOpacity>
 
-      <LiquidGlassModal visible={showCalendar} useNativeModal heightPercent={0.84} onClose={() => setShowCalendar(false)} onBackdropPress={() => setShowCalendar(false)}>
-        <ScrollView style={localStyles.modalScroll} contentContainerStyle={localStyles.modalScrollContent} showsVerticalScrollIndicator={false}>
+      <LiquidGlassModal
+        visible={showCalendar}
+        useNativeModal
+        heightPercent={0.84}
+        onClose={() => setShowCalendar(false)}
+        onBackdropPress={() => setShowCalendar(false)}
+        titleSlot={(
           <View style={localStyles.modalHeader}>
             <Text style={localStyles.modalEyebrow}>Availability period</Text>
             <Text style={localStyles.modalTitle}>Choose when this lot first goes live</Text>
             <Text style={localStyles.modalSubtitle}>The start date is the primary control. By default, the end date stays one year ahead and automatically follows any start-date change.</Text>
           </View>
-
+        )}
+      >
+        <ScrollView style={localStyles.modalScroll} contentContainerStyle={localStyles.modalScrollContent} showsVerticalScrollIndicator={false}>
           <View style={localStyles.summaryCard}>
             <View style={localStyles.summaryBlock}>
               <Text style={localStyles.summaryLabel}>Start</Text>
@@ -231,14 +238,21 @@ export default function AvailabilitySection({ checkedLot, lotState, handleChange
         </ScrollView>
       </LiquidGlassModal>
 
-      <LiquidGlassModal visible={showTimerStart} useNativeModal heightPercent={0.82} onClose={() => setShowTimerStart(false)} onBackdropPress={() => setShowTimerStart(false)}>
-        <ScrollView style={localStyles.modalScroll} contentContainerStyle={localStyles.modalScrollContent} showsVerticalScrollIndicator={false}>
+      <LiquidGlassModal
+        visible={showTimerStart}
+        useNativeModal
+        heightPercent={0.82}
+        onClose={() => setShowTimerStart(false)}
+        onBackdropPress={() => setShowTimerStart(false)}
+        titleSlot={(
           <View style={localStyles.modalHeader}>
             <Text style={localStyles.modalEyebrow}>Weekly availability</Text>
             <Text style={localStyles.modalTitle}>Tune the hours for each day</Text>
             <Text style={localStyles.modalSubtitle}>Choose the days this lot can be booked and refine the time range for the selected day.</Text>
           </View>
-
+        )}
+      >
+        <ScrollView style={localStyles.modalScroll} contentContainerStyle={localStyles.modalScrollContent} showsVerticalScrollIndicator={false}>
           <View style={localStyles.quickPresetRow}>
             {[
               { label: "Weekdays", active: weekdayEnabled },

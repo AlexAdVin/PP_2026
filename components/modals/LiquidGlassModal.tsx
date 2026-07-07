@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
+import { Dimensions, Modal, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
@@ -13,8 +13,11 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { BlurView } from "expo-blur";
+import { Ionicons } from "@expo/vector-icons";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
+const CLOSE_ANIMATION_DURATION = 240;
+const PAN_CLOSE_VELOCITY = 900;
 
 type Props = {
   children: React.ReactNode;
@@ -22,6 +25,8 @@ type Props = {
   heightPercent?: number;
   onClose: () => void;
   onBackdropPress?: () => void;
+  showCloseButton?: boolean;
+  titleSlot?: React.ReactNode;
   visible?: boolean;
   useNativeModal?: boolean;
 };
@@ -32,22 +37,40 @@ export default function LiquidGlassModal({
   heightPercent,
   onClose,
   onBackdropPress,
+  showCloseButton = true,
+  titleSlot,
   visible = true,
   useNativeModal = false,
 }: Props) {
   const resolvedHeight = height ?? SCREEN_HEIGHT * (heightPercent ?? 0.55);
-  const translateY = useSharedValue(resolvedHeight + 60);
+  const closedPosition = resolvedHeight + 72;
+  const translateY = useSharedValue(closedPosition);
+  const isClosing = useSharedValue(false);
 
   useEffect(() => {
+    if (!visible) {
+      translateY.value = closedPosition;
+      isClosing.value = false;
+      return;
+    }
+
+    isClosing.value = false;
+    translateY.value = closedPosition;
     translateY.value = withSpring(0, {
-      damping: 10,
-      stiffness: 220,
+      damping: 24,
+      stiffness: 240,
+      mass: 0.92,
     });
-  }, [translateY]);
+  }, [closedPosition, isClosing, translateY, visible]);
 
   const animateClose = () => {
     "worklet";
-    translateY.value = withTiming(resolvedHeight + 80, { duration: 220 }, (finished) => {
+    if (isClosing.value) {
+      return;
+    }
+
+    isClosing.value = true;
+    translateY.value = withTiming(closedPosition, { duration: CLOSE_ANIMATION_DURATION }, (finished) => {
       if (finished) {
         runOnJS(onClose)();
       }
@@ -59,18 +82,22 @@ export default function LiquidGlassModal({
   };
 
   const gesture = Gesture.Pan()
+    .activeOffsetY(10)
     .onUpdate((e) => {
       if (e.translationY > 0) {
-        translateY.value = e.translationY;
+        translateY.value = e.translationY * 0.96;
       }
     })
-    .onEnd(() => {
-      if (translateY.value > 120) {
+    .onEnd((e) => {
+      const shouldClose = translateY.value > resolvedHeight * 0.22 || e.velocityY > PAN_CLOSE_VELOCITY;
+
+      if (shouldClose) {
         animateClose();
       } else {
         translateY.value = withSpring(0, {
-          damping: 20,
-          stiffness: 220,
+          damping: 28,
+          stiffness: 260,
+          mass: 0.9,
         });
       }
     });
@@ -84,7 +111,7 @@ export default function LiquidGlassModal({
   }));
 
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateY.value, [0, 250], [1, 0.2]),
+    opacity: interpolate(translateY.value, [0, resolvedHeight], [1, 0]),
   }));
 
   if (!visible) {
@@ -115,7 +142,28 @@ export default function LiquidGlassModal({
 
           <GlassHighlights />
 
-          <View style={styles.handle} />
+          <View style={styles.chromeRow}>
+            <View style={styles.handle} />
+
+            {showCloseButton ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                hitSlop={16}
+                onPress={closeSheet}
+                style={styles.closeButton}
+              >
+                <View style={styles.closeButtonGlass}>
+                  <Ionicons name="close" size={18} color="rgba(255,255,255,0.96)" />
+                </View>
+              </TouchableOpacity>
+            ) : null}
+
+            {titleSlot ? (
+              <View style={styles.titleSlotWrap}>
+                {titleSlot}
+              </View>
+            ) : null}
+          </View>
 
           {children}
         </Animated.View>
@@ -177,14 +225,46 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.35)",
   },
 
+  chromeRow: {
+    justifyContent: "center",
+    minHeight: 44,
+    paddingTop: 10,
+    marginBottom: 18,
+  },
+
   handle: {
     width: 42,
     height: 5,
     borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.85)",
     alignSelf: "center",
-    marginTop: 10,
-    marginBottom: 24,
+  },
+
+  closeButton: {
+    position: "absolute",
+    top: 2,
+    right: 18,
+  },
+
+  closeButtonGlass: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.24)",
+    shadowColor: "#ffffff",
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+  },
+
+  titleSlotWrap: {
+    marginTop: 18,
+    paddingHorizontal: 22,
+    paddingRight: 68,
   },
 
   topGlow: {

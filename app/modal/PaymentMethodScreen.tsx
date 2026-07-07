@@ -20,6 +20,7 @@ type Props = {
   onStepChange?: (step: "choose" | "details" | "review") => void;
   amountLabel?: string;
   initialSelection?: PaymentMethodSelection | null;
+  showTitle?: boolean;
 };
 
 function sanitizeDigits(value: string) {
@@ -58,6 +59,7 @@ export default function PaymentMethodScreen({
   onStepChange,
   amountLabel = "$0.00",
   initialSelection = null,
+  showTitle = true,
 }: Props) {
   const [selected, setSelected] = useState<PaymentMethodType | undefined>(initialSelection?.methodType);
   const [step, setStep] = useState<"choose" | "details" | "review">("choose");
@@ -218,13 +220,15 @@ export default function PaymentMethodScreen({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        {step === "choose" && "Payment"}
-        {step === "details" && "Add card details"}
-        {step === "review" && "Review"}
-      </Text>
+      {showTitle ? (
+        <Text style={styles.title}>
+          {step === "choose" && "Payment"}
+          {step === "details" && "Add card details"}
+          {step === "review" && "Review"}
+        </Text>
+      ) : null}
 
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, !showTitle && styles.subtitleWithoutTitle]}>
         {step === "choose" && "Choose payment method"}
         {step === "details" && (selected === "mobilepay" ? "Enter your MobilePay details" : "Enter your card information")}
         {step === "review" && `Pay with ${paymentLabel}`}
@@ -430,6 +434,9 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     color: "#64748B",
     fontSize: 15,
+  },
+  subtitleWithoutTitle: {
+    marginTop: 0,
   },
 
   option: {

@@ -28,9 +28,12 @@ export default function BookingAlternativeModal({
   }
 
   return (
-    <LiquidGlassModal heightPercent={0.42} onClose={onAcknowledge}>
+    <LiquidGlassModal
+      heightPercent={0.42}
+      onClose={onAcknowledge}
+      titleSlot={<Text style={styles.title}>That slot was just taken</Text>}
+    >
       <View style={styles.container}>
-        <Text style={styles.title}>That slot was just taken</Text>
         <Text style={styles.message}>
           {hasAlternative
             ? `Lot ${selectedLotNumber ?? "?"} is no longer available at your selected time. Lot ${alternativeLotNumber ?? "?"} is available instead.`

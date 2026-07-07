@@ -38,9 +38,11 @@ type Props = {
   reason: AuthModalReason;
   onClose: () => void;
   onStepChange?: (step: AuthStep, method?: AuthMethodKey) => void;
+  onTitleChange?: (title: string) => void;
+  showTitle?: boolean;
 };
 
-export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props) {
+export default function AuthFlowScreen({ reason, onClose, onStepChange, onTitleChange, showTitle = true }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const setHostAuthPending = useAuthStore((state) => state.setHostAuthPending);
@@ -121,6 +123,10 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
 
     return () => clearTimeout(timeout);
   }, [completeSuccessfulAuth, step]);
+
+  useEffect(() => {
+    onTitleChange?.(getStepTitle(step, intent));
+  }, [intent, onTitleChange, step]);
 
   const sendPasswordlessCode = async (
     kind: IdentityKind,
@@ -446,8 +452,8 @@ export default function AuthFlowScreen({ reason, onClose, onStepChange }: Props)
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>{getStepTitle(step, intent)}</Text>
-        <Text style={styles.subtitle}>
+        {showTitle ? <Text style={styles.title}>{getStepTitle(step, intent)}</Text> : null}
+        <Text style={[styles.subtitle, !showTitle && styles.subtitleWithoutTitle]}>
           {getStepSubtitle(step, normalizedIdentity, intent)}
         </Text>
         <Text style={styles.reasonText}>{getReasonCopy(reason)}</Text>
@@ -713,6 +719,9 @@ const styles = StyleSheet.create({
     color: "#64748B",
     fontSize: 15,
     lineHeight: 22,
+  },
+  subtitleWithoutTitle: {
+    marginTop: 0,
   },
   reasonText: {
     marginBottom: 18,

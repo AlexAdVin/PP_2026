@@ -57,6 +57,7 @@ const Pay = () => {
 
   const [showTPicker, setShowTPicker] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentModalStep, setPaymentModalStep] = useState<'choose' | 'details' | 'review'>('choose');
   const [paymentSheetHeight, setPaymentSheetHeight] = useState(0.55);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethodSelection | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,6 +100,8 @@ const Pay = () => {
   const formattedStart = start.toLocaleString('en-UK', { hour: 'numeric', minute: 'numeric', hour12: false, timeZone: 'Europe/Copenhagen' });
 
   const handlePaymentStepChange = (step: 'choose' | 'details' | 'review') => {
+    setPaymentModalStep(step);
+
     switch (step) {
       case 'choose':
         setPaymentSheetHeight(0.5);
@@ -116,6 +119,19 @@ const Pay = () => {
     setSelectedPayment(selection);
     setShowPaymentModal(false);
   };
+
+  const openPaymentSheet = () => {
+    setPaymentModalStep('choose');
+    setPaymentSheetHeight(0.5);
+    setShowPaymentModal(true);
+  };
+
+  const paymentModalTitle =
+    paymentModalStep === 'choose'
+      ? 'Payment'
+      : paymentModalStep === 'details'
+        ? 'Add card details'
+        : 'Review';
 
   const handleGoBackToPlaceDetails = (targetLotId?: string | null) => {
     if (!resolvedLocationId) {
@@ -175,7 +191,7 @@ const Pay = () => {
     }
 
     if (!selectedPayment) {
-      setShowPaymentModal(true);
+      openPaymentSheet();
       return;
     }
 
@@ -362,7 +378,7 @@ const Pay = () => {
 
         {/* Payment */}
         <Text style={styles.titleIn}>Payment</Text>
-        <TouchableOpacity style={styles.txtInC} onPress={() => setShowPaymentModal(true)}>
+        <TouchableOpacity style={styles.txtInC} onPress={openPaymentSheet}>
           <MaterialCommunityIcons name="credit-card-check-outline" size={24} style={styles.txtInIcon} />
           <View style={styles.txtInCFlex}>
             <Text style={styles.txtMultiInfo}>{selectedPayment?.label ?? 'Choose payment method'}</Text>
@@ -392,12 +408,17 @@ const Pay = () => {
       />
 
       {showPaymentModal && (
-        <LiquidGlassModal heightPercent={paymentSheetHeight} onClose={() => setShowPaymentModal(false)}>
+        <LiquidGlassModal
+          heightPercent={paymentSheetHeight}
+          onClose={() => setShowPaymentModal(false)}
+          titleSlot={<Text style={stylesPay.modalTitle}>{paymentModalTitle}</Text>}
+        >
           <PaymentMethodScreen
             amountLabel={new Intl.NumberFormat('da', { style: 'currency', currency: 'DKK' }).format(pricing.totalAmount)}
             initialSelection={selectedPayment}
             onContinue={handlePaymentContinue}
             onStepChange={handlePaymentStepChange}
+            showTitle={false}
           />
         </LiquidGlassModal>
       )}
@@ -536,6 +557,11 @@ const stylesPay = StyleSheet.create({
   priceBreakdownCard: {
     paddingHorizontal: width * 0.06,
     paddingBottom: width * 0.06,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '600',
   },
   successOverlay: {
     ...StyleSheet.absoluteFillObject,

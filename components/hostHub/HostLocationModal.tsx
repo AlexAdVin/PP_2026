@@ -24,12 +24,18 @@ export default function HostLocationModal({
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <LiquidGlassModal heightPercent={0.68} onClose={onClose} onBackdropPress={onClose}>
-        <View style={stylesModal.header}>
-          <Text style={stylesModal.eyebrow}>Hosting hub</Text>
-          <Text style={stylesModal.title}>Choose a place</Text>
-          <Text style={stylesModal.subtitle}>Switch the active location to review revenue, reservations, and live controls.</Text>
-        </View>
+      <LiquidGlassModal
+        heightPercent={0.68}
+        onClose={onClose}
+        onBackdropPress={onClose}
+        titleSlot={(
+          <View style={stylesModal.header}>
+            <Text style={stylesModal.eyebrow}>Hosting hub</Text>
+            <Text style={stylesModal.title}>Choose a place</Text>
+            <Text style={stylesModal.subtitle}>Switch the active location to review revenue, reservations, and live controls.</Text>
+          </View>
+        )}
+      >
 
         <ScrollView
           style={{ height: height * 0.52, paddingHorizontal: width * 0.04 }}

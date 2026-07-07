@@ -26,6 +26,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [activeModal, setActiveModal] = useState<null | "payment">(null);
   const [paymentLabel, setPaymentLabel] = useState("Cards & billing");
+  const [paymentModalStep, setPaymentModalStep] = useState<"choose" | "details" | "review">("choose");
   const [modalHeightPercent, setModalHeightPercent] = useState(0.55);
   const session = useAuthStore((state) => state.session);
   const profile = useAuthStore((state) => state.profile);
@@ -33,8 +34,9 @@ export default function ProfileScreen() {
   const closeModal = () => setActiveModal(null);
 
   const handlePaymentSelect = () => {
+    setPaymentModalStep("choose");
+    setModalHeightPercent(0.5);
     setActiveModal("payment");
-    setModalHeightPercent(0.55);
   };
 
   const handlePaymentContinue = (selection: PaymentMethodSelection) => {
@@ -43,6 +45,8 @@ export default function ProfileScreen() {
   };
 
   const handlePaymentStepChange = (step: "choose" | "details" | "review") => {
+    setPaymentModalStep(step);
+
     switch (step) {
       case "choose":
         setModalHeightPercent(0.5);
@@ -62,6 +66,7 @@ export default function ProfileScreen() {
         <PaymentMethodScreen
           onContinue={handlePaymentContinue}
           onStepChange={handlePaymentStepChange}
+          showTitle={false}
         />
       );
     }
@@ -177,6 +182,7 @@ export default function ProfileScreen() {
         <LiquidGlassModal
           heightPercent={modalHeightPercent}
           onClose={closeModal}
+          titleSlot={<Text style={styles.modalTitle}>{paymentModalStep === "choose" ? "Payment" : paymentModalStep === "details" ? "Add card details" : "Review"}</Text>}
         >
           {renderModalContent()}
         </LiquidGlassModal>
@@ -314,6 +320,11 @@ const styles = StyleSheet.create({
     color: "#0F172A",
     fontWeight: "700",
     fontSize: 14,
+  },
+  modalTitle: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "600",
   },
   signOutButton: {
     marginTop: 12,

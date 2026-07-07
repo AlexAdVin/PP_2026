@@ -122,7 +122,19 @@ export default function ReservationListScreen({
       </ScrollView>
 
       {selectedReservation ? (
-        <LiquidGlassModal heightPercent={0.72} onClose={() => setSelectedReservation(null)} useNativeModal>
+        <LiquidGlassModal
+          heightPercent={0.72}
+          onClose={() => setSelectedReservation(null)}
+          titleSlot={(
+            <View>
+              <Text style={stylesScreen.modalTitle}>Reservation passport</Text>
+              <Text style={stylesScreen.modalSubtitle}>
+                {selectedReservation?.locationName ?? selectedReservation?.bookingReference ?? "Booking details"}
+              </Text>
+            </View>
+          )}
+          useNativeModal
+        >
           <View style={stylesScreen.passportWrap}>
             <ReservationPassport
               reservation={selectedReservation}
@@ -189,5 +201,15 @@ const stylesScreen = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 18,
     paddingBottom: 24,
+  },
+  modalTitle: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "700",
+  },
+  modalSubtitle: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 13,
+    marginTop: 4,
   },
 });

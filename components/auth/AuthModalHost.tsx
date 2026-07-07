@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Modal, StyleSheet, View } from "react-native";
+import { Modal, StyleSheet, Text, View } from "react-native";
 
 import AuthFlowScreen from "./AuthFlowScreen";
 import LiquidGlassModal from "@/components/modals/LiquidGlassModal";
@@ -10,6 +10,7 @@ export default function AuthModalHost() {
   const modalReason = useAuthStore((state) => state.modalReason);
   const closeModal = useAuthStore((state) => state.closeModal);
   const [heightPercent, setHeightPercent] = useState(0.7);
+  const [modalTitle, setModalTitle] = useState("Enter your email or phone");
 
   if (!modalVisible || !modalReason) {
     return null;
@@ -25,10 +26,16 @@ export default function AuthModalHost() {
       onRequestClose={closeModal}
     >
       <View pointerEvents="box-none" style={styles.overlayHost}>
-        <LiquidGlassModal heightPercent={heightPercent} onClose={closeModal}>
+        <LiquidGlassModal
+          heightPercent={heightPercent}
+          onClose={closeModal}
+          titleSlot={<Text style={styles.modalTitle}>{modalTitle}</Text>}
+        >
           <AuthFlowScreen
             reason={modalReason}
             onClose={closeModal}
+            onTitleChange={setModalTitle}
+            showTitle={false}
             onStepChange={(step) => {
               if (step === "entry") {
                 setHeightPercent(0.72);
@@ -69,5 +76,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 999,
     elevation: 999,
+  },
+  modalTitle: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "600",
   },
 });
