@@ -51,6 +51,7 @@ const Pay = () => {
   const replaceCachedLocation = useLocationStore((state) => state.replaceCachedLocation);
   const appendTransactionToCachedLot = useLocationStore((state) => state.appendTransactionToCachedLot);
   const upsertDriverReservation = useLocationStore((state) => state.upsertDriverReservation);
+  const resetBookingStartSelection = useLocationStore((state) => state.resetBookingStartSelection);
   const session = useAuthStore((state) => state.session);
   const openModal = useAuthStore((state) => state.openModal);
 
@@ -222,6 +223,8 @@ const Pay = () => {
         bookedAt: transaction.bookedAt,
       });
 
+      resetBookingStartSelection();
+
       setSuccessReservationId(transaction.id);
     } catch (error: any) {
       console.error('Failed to create booking transaction', error);
@@ -385,7 +388,7 @@ const Pay = () => {
         visible={showTPicker}
         onClose={() => setShowTPicker(false)}
         title="Edit Arrival & Duration"
-        heightPercent={0.82}
+        heightPercent={0.60}
       />
 
       {showPaymentModal && (

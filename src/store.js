@@ -146,6 +146,13 @@ export const useLocationStore = create(persist((set, get) => ({
     selectedLocationId: locationId,
     selectedLotId: lotId,
   }),
+  resetBookingStartSelection: () => set((state) => ({
+    bookingTime: {
+      ...state.bookingTime,
+      startTime: new Date().toISOString(),
+      hasUserSelectedStartTime: false,
+    },
+  })),
   
   // Update booking time - called only when user saves in TimeReg
   setBookingTime: (startTime, duration) => set({

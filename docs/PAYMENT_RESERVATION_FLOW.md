@@ -8,11 +8,23 @@ After a successful write, `app/(drawer)/driver/pay.tsx` now:
 
 1. Appends the new transaction window into the cached driver discovery payload.
 2. Upserts a driver-facing reservation into the persisted driver Zustand store.
-3. Shows a full-screen Lottie success step for 4 seconds.
-4. Navigates to `/driver/reservations?openReservationId=<transaction-id>`.
-5. Opens the reservation passport in a `LiquidGlassModal`.
+3. Resets the explicit arrival-time selection so the next fresh booking starts from `now` again unless the driver picks a new time.
+4. Shows a full-screen Lottie success step for 4 seconds.
+5. Navigates to `/driver/reservations?openReservationId=<transaction-id>`.
+6. Opens the reservation passport in a `LiquidGlassModal`.
 
 The alert-based success confirmation was intentionally removed so the driver lands in a durable reservation surface instead of being sent back to the map without context.
+
+## Booking Time Lifecycle
+
+The driver booking-time behavior is intentionally split between an effective default and an explicit persisted selection.
+
+- `src/lib/bookingTime.ts#getEffectiveBookingStart(...)` returns the current rounded time when the user has not explicitly saved an arrival time.
+- `components/time/TimeReg.js` persists the selected arrival time and duration only when the driver confirms in the booking time sheet.
+- That persisted selection then flows from Place Detail into Pay, so `Park from` reflects the driver-selected arrival time during the active booking flow.
+- Once the booking transaction is successfully created, `resetBookingStartSelection()` clears the explicit selection flag and refreshes the stored start timestamp.
+
+This prevents the last successful booking's arrival time from leaking into the next booking session while preserving the selected time between Place Detail and Pay for the current booking.
 
 ## Reservation Screen Architecture
 
