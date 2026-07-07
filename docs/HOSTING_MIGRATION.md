@@ -83,6 +83,7 @@ The host landing screen now behaves like a real host gate instead of seeding moc
 - If the mocked host profile is missing or the host has no listed locations, `app/(drawer)/host/(tabs)/index.tsx` shows a premium onboarding screen.
 - Completing `Start sharing` creates the first host profile marker and host location draft in `src/hostStore.js`, then returns to the full hosting hub.
 - The location selector uses `components/modals/LiquidGlassModal.tsx` rather than the legacy modal sheet.
+- `components/hostHub/HostLocationModal.tsx` also exposes an in-modal `Add a new location` CTA that closes the selector and routes the user into `/host/start-listing-intro`.
 
 ## Backend Reconnection Notes
 

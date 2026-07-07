@@ -59,6 +59,7 @@ Host locations and resumable listing drafts now come from separate sources so th
 - `Save & Exit` persists only the in-progress listing draft in AsyncStorage through `src/hostStore.js`.
 - Final listing submission from `/host/create-listing` is routed through `src/adapters/hostListingPersistenceAdapter.ts`, which now validates the draft, upserts the host profile, and creates the location through Supabase.
 - First-launch onboarding visibility is persisted separately through `src/adapters/appIntroAdapter.ts` so the app intro appears before Landing only for users who have not completed it yet.
+- The host location switcher modal now includes an `Add a new location` liquid-glass CTA that routes directly to `/host/start-listing-intro`.
 - The hosting hub always hydrates the simulated database locations, then overlays any saved draft in the UI as a resumable unlisted item.
 - If there are database-backed locations, the saved draft appears alongside them in the location switcher. If the draft is the only host artifact, the hub shows a dedicated `Continue listing` CTA.
 
