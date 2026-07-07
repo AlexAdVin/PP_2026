@@ -20,6 +20,11 @@ type UpsertableUserProfile = {
   auth_provider: string;
 };
 
+type PostgrestLikeError = {
+  code?: string | null;
+  message?: string | null;
+};
+
 function pickProvider(user: User) {
   const firstIdentity = user.identities?.[0]?.provider;
   return firstIdentity ?? user.app_metadata.provider ?? (user.email ? "email" : "phone");
@@ -51,6 +56,29 @@ function mapRow(row: Record<string, unknown>): AppUserProfile {
   };
 }
 
+function buildSessionProfile(user: User): AppUserProfile {
+  return {
+    id: user.id,
+    phone: user.phone ?? null,
+    email: user.email ?? null,
+    displayName: buildDisplayName(user),
+    authProvider: pickProvider(user),
+  };
+}
+
+function isIdentityUniqueConflict(error: PostgrestLikeError | null) {
+  if (!error) {
+    return false;
+  }
+
+  const message = error.message?.toLowerCase() ?? "";
+
+  return (
+    error.code === "23505" &&
+    (message.includes("users_phone_key") || message.includes("users_email_key"))
+  );
+}
+
 function buildUpsertPayload(user: User): UpsertableUserProfile {
   return {
     id: user.id,
@@ -62,6 +90,12 @@ function buildUpsertPayload(user: User): UpsertableUserProfile {
 }
 
 export async function upsertUserProfileForSession(session: Session) {
+  const existingProfile = await fetchUserProfile(session.user.id);
+
+  if (existingProfile) {
+    return existingProfile;
+  }
+
   const payload = buildUpsertPayload(session.user);
 
   const { data, error } = await supabase
@@ -71,6 +105,24 @@ export async function upsertUserProfileForSession(session: Session) {
     .single();
 
   if (error) {
+    if (isIdentityUniqueConflict(error)) {
+      const currentProfile = await fetchUserProfile(session.user.id);
+
+      if (currentProfile) {
+        return currentProfile;
+      }
+
+      console.warn(
+        "Falling back to session profile because public.users contains a conflicting phone or email row.",
+        {
+          code: error.code,
+          message: error.message,
+        },
+      );
+
+      return buildSessionProfile(session.user);
+    }
+
     throw error;
   }
 

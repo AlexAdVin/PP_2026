@@ -71,6 +71,10 @@ If you ever run `drop schema public cascade; create schema public;`, you also re
 
 The `users` table also needs table-level grants in addition to RLS policies. The script now grants `select`, `insert`, and `update` on `public.users` to `authenticated`, because the mobile app reads and upserts the current driver's own profile before any host row exists.
 
+Session hydration now treats `public.users` as a mirror that may already be populated by the database trigger. On app start and after auth state changes, the client first reads `public.users` by `auth.users.id` before attempting an upsert. If a legacy row still causes a `23505` uniqueness conflict on `users_phone_key` or `users_email_key`, the app falls back to a session-derived in-memory profile instead of failing auth bootstrap.
+
+That safeguard prevents login restore from breaking, but it does not repair stale duplicate identity rows in Supabase. If you still see repeated uniqueness conflicts in logs, clean up the conflicting `public.users` records so phone and email ownership matches the canonical `auth.users.id`.
+
 ## Row Level Security
 
 ```sql
@@ -138,6 +142,8 @@ If Face ID succeeds but Supabase returns `Provider (issuer "https://appleid.appl
 - `components/auth/SignOutButton.tsx`: shared sign-out control reused by the drawer and profile screen.
 
 The app still upserts the signed-in session profile client-side as an idempotent safety net, while the database trigger remains the primary server-side sync path.
+
+That safety net is intentionally defensive now: `src/adapters/userProfileAdapter.ts` reads first, only writes when needed, and degrades to the active Supabase session payload if an old uniqueness conflict prevents `public.users` from being refreshed immediately.
 
 ## Hosting Setup
 
